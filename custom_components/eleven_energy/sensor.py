@@ -1,7 +1,7 @@
 """Eleven Energy Sensor init."""
 
 import logging
-from config.custom_components.eleven_energy import DOMAIN
+from .const import DOMAIN
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
