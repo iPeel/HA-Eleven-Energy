@@ -1,0 +1,16 @@
+{
+    "domain": "eleven_energy",
+    "name": "Eleven Energy",
+    "codeowners": [
+      "@iPeel"
+    ],
+    "config_flow": true,
+    "dependencies": [],
+    "documentation": "https://github.com/iPeel/HA-ElevenEnergy/",
+    "integration_type": "hub",
+    "iot_class": "local_polling",
+    "requirements": [],
+    "ssdp": [],
+    "zeroconf": [],
+    "version": 0.1
+  }

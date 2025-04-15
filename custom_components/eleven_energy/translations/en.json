@@ -1,0 +1,66 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Device is already configured",
+            "already_setup": "Only one hub allowed, configure existing using a CSV list of IP addresses"
+        },
+        "error": {
+            "cannot_connect": "Failed to connect",
+            "invalid_auth": "Invalid authentication",
+            "unknown": "Unexpected error"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "token": "API Token"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "token": "API Token"
+                }
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "soc": {
+                "name": "State Of Charge"
+            },
+            "pvpower": {
+                "name": "PV Power"
+            },
+            "pvenergytoday": {
+                "name": "PV Energy Today"
+            },
+            "loadenergytoday": {
+                "name": "Load Energy Today"
+            },
+            "loadpower": {
+                "name": "Load Power"
+            },
+            "batterypower": {
+                "name": "Battery Power"
+            },
+            "batteryenergyintoday": {
+                "name": "Charged Today"
+            },
+            "batteryenergyouttoday": {
+                "name": "Discharged Today"
+            },
+            "gridenergyintoday": {
+                "name": "Imported Today"
+            },
+            "gridenergyouttoday": {
+                "name": "Exported Today"
+            },
+            "gridpower": {
+                "name": "Grid Power "
+            }
+        }
+    }
+}
