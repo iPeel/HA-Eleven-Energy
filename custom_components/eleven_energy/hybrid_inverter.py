@@ -2,7 +2,7 @@
 
 import logging
 
-from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, UnitOfEnergy, UnitOfPower
 from homeassistant.core import HomeAssistant
@@ -47,6 +47,8 @@ class HybridInverter:
                 unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 decimals=2,
                 icon="mdi:solar-power-variant",
+                device_class=SensorDeviceClass.ENERGY,
+                state_class=SensorStateClass.TOTAL_INCREASING,
             ),
             "load.power": InverterSensorEntity(
                 hass,
@@ -65,6 +67,8 @@ class HybridInverter:
                 unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 decimals=2,
                 icon="mdi:lightning-bolt",
+                device_class=SensorDeviceClass.ENERGY,
+                state_class=SensorStateClass.TOTAL_INCREASING,
             ),
             "battery.stateOfCharge": InverterSensorEntity(
                 hass,
@@ -93,6 +97,8 @@ class HybridInverter:
                 unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 decimals=2,
                 icon="mdi:battery-plus",
+                device_class=SensorDeviceClass.ENERGY,
+                state_class=SensorStateClass.TOTAL_INCREASING,
             ),
             "battery.energyOutToday": InverterSensorEntity(
                 hass,
@@ -102,6 +108,8 @@ class HybridInverter:
                 unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 decimals=2,
                 icon="mdi:battery-minus",
+                device_class=SensorDeviceClass.ENERGY,
+                state_class=SensorStateClass.TOTAL_INCREASING,
             ),
             "grid.power": InverterSensorEntity(
                 hass,
@@ -120,6 +128,8 @@ class HybridInverter:
                 unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 decimals=2,
                 icon="mdi:transmission-tower-export",
+                device_class=SensorDeviceClass.ENERGY,
+                state_class=SensorStateClass.TOTAL_INCREASING,
             ),
             "grid.energyOutToday": InverterSensorEntity(
                 hass,
@@ -129,6 +139,8 @@ class HybridInverter:
                 unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 decimals=2,
                 icon="mdi:transmission-tower-import",
+                device_class=SensorDeviceClass.ENERGY,
+                state_class=SensorStateClass.TOTAL_INCREASING,
             ),
         }
 
