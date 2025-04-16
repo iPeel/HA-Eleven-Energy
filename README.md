@@ -1,5 +1,4 @@
-# HA-Eleven-Energy
-Eleven Energy integration for Home Assistant
+# Home Assistant Eleven Energy integration
 
 Connects to your Eleven Energy site ( cloud connection ) and obtains minute by minute stats from your inverter. It also allows changing of the hybrid work mode through service calls.
 
