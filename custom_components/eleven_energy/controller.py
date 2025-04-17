@@ -61,17 +61,16 @@ class Controller:
         if "device_id" in data:
             hass_device_id = data["device_id"][0]
             dev_reg = dr.async_get(self.hass)
-            _LOGGER.info(hass_device_id)
             dev: DeviceEntry = dev_reg.async_get(hass_device_id)
-            for i in dev.identifiers:
-                device_id = i[1]
+            for identifier in dev.identifiers:
+                device_id = identifier[1]
 
         # If no device specified, find it in our own registry
         if device_id is None:
             for device in self.devices.values():
-                _LOGGER.info(device)
                 if device.type == "hybridinverter":
                     device_id = device.device_id
+                    break
 
         if device_id is None:
             _LOGGER.warning("Cannot perform set workmode as no device determined")
@@ -80,39 +79,41 @@ class Controller:
         workMode = None
         params = {}
 
-        if mode == "set_work_mode_self_consumption":
-            _LOGGER.info("Self consumption")
-            workMode = "selfConsumption"
-            if "percent_to_battery" in data:
-                params["targetExcessPc"] = data["percent_to_battery"]
+        # detect supported work modes and extract useful parameters from the data.
+        match mode:
+            case "set_work_mode_self_consumption":
+                _LOGGER.info("Self consumption")
+                workMode = "selfConsumption"
+                if "percent_to_battery" in data:
+                    params["targetExcessPc"] = data["percent_to_battery"]
 
-        if mode == "set_work_mode_force_charge":
-            workMode = "forceCharge"
-            if "target_percent" in data:
-                params["targetSoc"] = data["target_percent"]
-            if "target_power" in data:
-                params["rate"] = data["target_power"]
+            case "set_work_mode_force_charge":
+                workMode = "forceCharge"
+                if "target_percent" in data:
+                    params["targetSoc"] = data["target_percent"]
+                if "target_power" in data:
+                    params["rate"] = data["target_power"]
 
-        if mode == "set_work_mode_grid_export":
-            workMode = "gridExport"
-            if "target_percent" in data:
-                params["targetSoc"] = data["target_percent"]
-            if "target_power" in data:
-                params["rate"] = data["target_power"]
+            case "set_work_mode_grid_export":
+                workMode = "gridExport"
+                if "target_percent" in data:
+                    params["targetSoc"] = data["target_percent"]
+                if "target_power" in data:
+                    params["rate"] = data["target_power"]
 
-        if mode == "set_work_mode_pv_export":
-            workMode = "pvExportPriority"
+            case "set_work_mode_pv_export":
+                workMode = "pvExportPriority"
 
-        if mode == "set_work_mode_idle_battery":
-            workMode = "idleBattery"
-            if "allow_charging" in data:
-                params["allowCharge"] = data["allow_charging"]
-            if "allow_discharging" in data:
-                params["allowDischarge"] = data["allow_discharging"]
+            case "set_work_mode_idle_battery":
+                workMode = "idleBattery"
+                if "allow_charging" in data:
+                    params["allowCharge"] = data["allow_charging"]
+                if "allow_discharging" in data:
+                    params["allowDischarge"] = data["allow_discharging"]
 
-        if workMode is None:
-            _LOGGER("Unable to determine work mode from %s", mode)
-            return
+            case _:
+                _LOGGER("Unable to determine work mode from %s", mode)
+                return
 
         params["workMode"] = workMode
 
