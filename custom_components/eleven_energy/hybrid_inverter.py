@@ -4,7 +4,12 @@ import logging
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, UnitOfEnergy, UnitOfPower
+from homeassistant.const import (
+    PERCENTAGE,
+    UnitOfElectricPotential,
+    UnitOfEnergy,
+    UnitOfPower,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 
@@ -43,7 +48,7 @@ class HybridInverter:
                 hass,
                 device_info=self.device_info,
                 device_id=self.device_id,
-                entity_type="pvPower",
+                entity_type="pv_power",
                 unit_of_measurement=UnitOfPower.KILO_WATT,
                 decimals=2,
                 icon="mdi:solar-power",
@@ -52,7 +57,7 @@ class HybridInverter:
                 hass,
                 device_info=self.device_info,
                 device_id=self.device_id,
-                entity_type="pvEnergyToday",
+                entity_type="pv_energy_today",
                 unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 decimals=2,
                 icon="mdi:solar-power-variant",
@@ -63,7 +68,7 @@ class HybridInverter:
                 hass,
                 device_info=self.device_info,
                 device_id=self.device_id,
-                entity_type="loadPower",
+                entity_type="load_power",
                 unit_of_measurement=UnitOfPower.KILO_WATT,
                 decimals=2,
                 icon="mdi:home-lightning-bolt",
@@ -72,7 +77,7 @@ class HybridInverter:
                 hass,
                 device_info=self.device_info,
                 device_id=self.device_id,
-                entity_type="loadEnergyToday",
+                entity_type="load_energy_today",
                 unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 decimals=2,
                 icon="mdi:lightning-bolt",
@@ -83,7 +88,7 @@ class HybridInverter:
                 hass,
                 device_info=self.device_info,
                 device_id=self.device_id,
-                entity_type="soc",
+                entity_type="state_of_charge",
                 unit_of_measurement=PERCENTAGE,
                 decimals=0,
                 icon="mdi:battery",
@@ -93,7 +98,7 @@ class HybridInverter:
                 hass,
                 device_info=self.device_info,
                 device_id=self.device_id,
-                entity_type="batteryPower",
+                entity_type="battery_power",
                 unit_of_measurement=UnitOfPower.KILO_WATT,
                 decimals=2,
                 icon="mdi:battery-minus-variant",
@@ -102,7 +107,7 @@ class HybridInverter:
                 hass,
                 device_info=self.device_info,
                 device_id=self.device_id,
-                entity_type="batteryEnergyInToday",
+                entity_type="battery_energy_in_today",
                 unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 decimals=2,
                 icon="mdi:battery-plus",
@@ -113,7 +118,7 @@ class HybridInverter:
                 hass,
                 device_info=self.device_info,
                 device_id=self.device_id,
-                entity_type="batteryEnergyOutToday",
+                entity_type="battery_energy_out_today",
                 unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 decimals=2,
                 icon="mdi:battery-minus",
@@ -124,7 +129,7 @@ class HybridInverter:
                 hass,
                 device_info=self.device_info,
                 device_id=self.device_id,
-                entity_type="gridPower",
+                entity_type="grid_power",
                 unit_of_measurement=UnitOfPower.KILO_WATT,
                 decimals=2,
                 icon="mdi:transmission-tower",
@@ -133,7 +138,7 @@ class HybridInverter:
                 hass,
                 device_info=self.device_info,
                 device_id=self.device_id,
-                entity_type="gridEnergyInToday",
+                entity_type="grid_energy_in_today",
                 unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 decimals=2,
                 icon="mdi:transmission-tower-export",
@@ -144,12 +149,41 @@ class HybridInverter:
                 hass,
                 device_info=self.device_info,
                 device_id=self.device_id,
-                entity_type="gridEnergyOutToday",
+                entity_type="grid_energy_out_today",
                 unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 decimals=2,
                 icon="mdi:transmission-tower-import",
                 device_class=SensorDeviceClass.ENERGY,
                 state_class=SensorStateClass.TOTAL_INCREASING,
+            ),
+            "system.power": InverterSensorEntity(
+                hass,
+                device_info=self.device_info,
+                device_id=self.device_id,
+                entity_type="system_power",
+                unit_of_measurement=UnitOfPower.KILO_WATT,
+                decimals=2,
+                icon="mdi:flash",
+            ),
+            "system.voltage": InverterSensorEntity(
+                hass,
+                device_info=self.device_info,
+                device_id=self.device_id,
+                entity_type="system_voltage",
+                unit_of_measurement=UnitOfElectricPotential.VOLT,
+                device_class=SensorDeviceClass.VOLTAGE,
+                decimals=2,
+                icon="mdi:flash",
+            ),
+            "operatingMode.workMode": InverterSensorEntity(
+                hass,
+                device_info=self.device_info,
+                device_id=self.device_id,
+                entity_type="system_work_mode",
+                icon="mdi:all-inclusive-box-outline",
+                device_class=None,
+                unit_of_measurement=None,
+                state_class=None,
             ),
         }
 
@@ -174,3 +208,5 @@ class HybridInverter:
         self.processHive(json, "battery")
         self.processHive(json, "pv")
         self.processHive(json, "grid")
+        self.processHive(json, "system")
+        self.processHive(json, "operatingMode")

@@ -28,38 +28,54 @@
     },
     "entity": {
         "sensor": {
-            "soc": {
+            "state_of_charge": {
                 "name": "State Of Charge"
             },
-            "pvpower": {
+            "pv_power": {
                 "name": "PV Power"
             },
-            "pvenergytoday": {
+            "pv_energy_today": {
                 "name": "PV Energy Today"
             },
-            "loadenergytoday": {
+            "load_energy_today": {
                 "name": "Load Energy Today"
             },
-            "loadpower": {
+            "load_power": {
                 "name": "Load Power"
             },
-            "batterypower": {
+            "battery_power": {
                 "name": "Battery Power"
             },
-            "batteryenergyintoday": {
+            "battery_energy_in_today": {
                 "name": "Charged Today"
             },
-            "batteryenergyouttoday": {
+            "battery_energy_out_today": {
                 "name": "Discharged Today"
             },
-            "gridenergyintoday": {
+            "grid_energy_in_today": {
                 "name": "Imported Today"
             },
-            "gridenergyouttoday": {
+            "grid_energy_out_today": {
                 "name": "Exported Today"
             },
-            "gridpower": {
-                "name": "Grid Power "
+            "grid_power": {
+                "name": "Grid Power"
+            },
+            "system_power": {
+                "name": "System Power"
+            },
+            "system_voltage": {
+                "name": "System Voltage"
+            },
+            "system_work_mode": {
+                "name": "Work Mode",
+                "state": {
+                    "selfConsumption": "Self Consumption",
+                    "forceCharge": "Force Charge",
+                    "gridExport": "Grid Export",
+                    "idlebattery": "Idle Battery",
+                    "pvExportPriority": "PV Export Priority"
+                    }
             }
         }
     }
