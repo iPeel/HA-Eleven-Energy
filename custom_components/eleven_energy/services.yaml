@@ -1,0 +1,77 @@
+set_work_mode_self_consumption:
+  name: Change work mode to Self Consumption
+  description: Requests a change of work mode to Self Consumption, excess solar is sent to the battery and then on to the grid if the battery is full.
+  target:
+    entity:
+      domain: sensor
+      integration: eleven_energy
+  fields:
+    percentage_to_battery:
+      name: Percentage to battery
+      description: The percentage of average excess solar to divert to the battery versus the grid. Specify an amount less than 100 to send some energy to the grid even when the battery isn't full.
+      example: '100'
+      required: false
+
+set_work_mode_force_charge:
+  name: Change work mode to Force Charge
+  description: Requests a change of work mode to Force Charge to charge the battery from the grid.
+  target:
+    entity:
+      domain: sensor
+      integration: eleven_energy
+  fields:
+    target_power:
+      name: Charge power
+      description: The amount of power to charge the battery.
+      example: '3.5'
+      required: true
+    target_percent:
+      name: Target Percent
+      description: The percentage State of Charge to charge the battery to, when the target is reached charging will stop but the battery will not be used.
+      required: true
+
+set_work_mode_grid_export:
+  name: Change work mode to Grid Export
+  description: Requests a change of work mode to Grid Export to discharge the battery out to the grid.
+  target:
+    entity:
+      domain: sensor
+      integration: eleven_energy
+  fields:
+    target_power:
+      name: Discharge power
+      description: The amount of power to export toi the grid.
+      example: '3.5'
+      required: true
+    target_percent:
+      name: Target Percent
+      description: The percentage State of Charge to discharge until, once the state of charge is reached, only excess solar will be exported.
+      required: true
+
+set_work_mode_pv_export:
+  name: Change work mode to PV Export Priority
+  description: Requests a change of work mode to PV Export Priority to prefer to export excess solar to the grid rather than charge the battery.
+  target:
+    entity:
+      domain: sensor
+      integration: eleven_energy
+
+set_work_mode_idle_battery:
+  name: Change work mode to Idle Battery
+  description: Requests a change of work mode to Idle Battery to disable charging or discharging of the battery.
+  target:
+    entity:
+      domain: sensor
+      integration: eleven_energy
+  fields:
+    allow_charging:
+      name: Allow Charging
+      description: Allow charging of the battery ( i.e. only disallow discharge )
+      required: false
+    allow_discharging:
+      name: Allow Discharging
+      description: Allow discharging of the battery ( i.e. only disallow charging )
+      required: false
+
+
+

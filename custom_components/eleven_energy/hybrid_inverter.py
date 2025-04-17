@@ -17,15 +17,24 @@ _LOGGER = logging.getLogger(__name__)
 class HybridInverter:
     """Inverter object."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, device_id: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        device_id: str,
+        device_name: str,
+        device_serial_number: str,
+    ) -> None:
         """Create an inverter."""
+        self.type = "hybridinverter"
         self.device_id = device_id
-        self.model_number = "North Sea 6"
+        self.model_number = device_name
         self.device_info = DeviceInfo(
             identifiers={(DOMAIN, self.device_id)},
             name="Eleven Energy North Sea 6",
             manufacturer="Eleven Energy",
             model=self.model_number,
+            serial_number=device_serial_number,
         )
         self.hass = hass
         self.entry = entry

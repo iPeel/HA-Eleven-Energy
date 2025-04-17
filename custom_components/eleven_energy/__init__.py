@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 
 from .const import DOMAIN, PLATFORMS
 from .controller import Controller
@@ -35,11 +35,44 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 def setup(hass: HomeAssistant, entry: ConfigEntry):
     """Set up is called when Home Assistant is loading our component."""
 
-    def handle_set_workmode(call):
+    async def handle_set_workmode(call: ServiceCall):
         controller = hass.data[DOMAIN]["controller"]
-        controller.set_work_mode(call.data)
+        await controller.set_work_mode(call.service, call.data)
 
-    hass.services.register(DOMAIN, "set_operating_mode", handle_set_workmode)
+    hass.services.register(
+        DOMAIN,
+        "set_work_mode_self_consumption",
+        handle_set_workmode,
+        supports_response=SupportsResponse.NONE,
+    )
+
+    hass.services.register(
+        DOMAIN,
+        "set_work_mode_force_charge",
+        handle_set_workmode,
+        supports_response=SupportsResponse.NONE,
+    )
+
+    hass.services.register(
+        DOMAIN,
+        "set_work_mode_grid_export",
+        handle_set_workmode,
+        supports_response=SupportsResponse.NONE,
+    )
+
+    hass.services.register(
+        DOMAIN,
+        "set_work_mode_idle_battery",
+        handle_set_workmode,
+        supports_response=SupportsResponse.NONE,
+    )
+
+    hass.services.register(
+        DOMAIN,
+        "set_work_mode_pv_export",
+        handle_set_workmode,
+        supports_response=SupportsResponse.NONE,
+    )
 
     _LOGGER.info("Registered Eleven Energy services")
 

@@ -5,7 +5,9 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
 
 from .const import BASE_URL, PLATFORMS, POLL_INTERVAL_SECONDS
 from .hybrid_inverter import HybridInverter
@@ -30,8 +32,85 @@ class Controller:
         self.devices = {}
         self.platforms_started = 0
 
-    def set_work_mode(self, data) -> None:
+    async def set_work_mode(self, mode, data) -> None:
         """Change the system work mode."""
+        _LOGGER.info("SET WORKMODE %s %s", mode, data)
+
+        device_id = None
+
+        # If a device is specified, find the cloud device ID from the device identifier
+        if "device_id" in data:
+            hass_device_id = data["device_id"][0]
+            dev_reg = dr.async_get(self.hass)
+            _LOGGER.info(hass_device_id)
+            dev: DeviceEntry = dev_reg.async_get(hass_device_id)
+            for i in dev.identifiers:
+                device_id = i[1]
+
+        # If no device specified, find it in our own registry
+        if device_id is None:
+            for device in self.devices.values():
+                _LOGGER.info(device)
+                if device.type == "hybridinverter":
+                    device_id = device.device_id
+
+        if device_id is None:
+            _LOGGER.warning("Cannot perform set workmode as no device determined")
+            return
+
+        workMode = None
+        params = {}
+        _LOGGER.info("Work mode is %s", mode)
+        if mode == "set_work_mode_self_consumption":
+            _LOGGER.info("Self consumption")
+            workMode = "selfConsumption"
+            if "percentage_to_battery" in data:
+                params["targetExcessPc"] = data["percentage_to_battery"]
+
+        if mode == "set_work_mode_force_charge":
+            workMode = "forceCharge"
+            if "target_percent" in data:
+                params["targetSoc"] = data["target_percent"]
+            if "target_power" in data:
+                params["rate"] = data["target_power"]
+
+        if mode == "set_work_mode_grid_export":
+            workMode = "gridExport"
+            if "target_percent" in data:
+                params["targetSoc"] = data["target_percent"]
+            if "target_power" in data:
+                params["rate"] = data["target_power"]
+
+        if mode == "set_work_mode_pv_export":
+            workMode = "pvExportPriority"
+
+        if mode == "set_work_mode_idle_battery":
+            workMode = "idleBattery"
+            if "allow_charging" in data:
+                params["allowCharge"] = data["allow_charging"]
+            if "allow_discharging" in data:
+                params["allowDischarge"] = data["allow_discharging"]
+
+        if workMode is None:
+            _LOGGER("Unable to determine work mode from %s", mode)
+            return
+
+        params["workMode"] = workMode
+
+        loops = 1
+        while loops <= 32:
+            response = await async_get_clientsession(self.hass).post(
+                BASE_URL + "devices/" + device_id + "/operatingMode",
+                headers=self.headers,
+                json=params,
+            )
+
+            if response.status == 200:
+                return
+
+            _LOGGER.warning("Set workmode got status %s", response.status)
+            await asyncio.sleep(loops)
+            loops = loops * 2
 
     async def initialise(self):
         """Set up the controller."""
@@ -90,7 +169,13 @@ class Controller:
             if device_type != "hybridinverter":
                 continue
             if device_id not in self.devices:
-                inverter = HybridInverter(self.hass, self.config, device_id)
+                inverter = HybridInverter(
+                    self.hass,
+                    self.config,
+                    device_id,
+                    device.get("name", "Eleven Energy"),
+                    device.get("serialNumber", ""),
+                )
                 self.devices[device_id] = inverter
                 _LOGGER.info("Created inverter %s", device_id)
 
