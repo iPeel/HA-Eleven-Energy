@@ -25,7 +25,7 @@ To switch to thie work mode, use the "_set_work_mode_self_consumption_" service 
 
 Key | Required | Description
 --- | --- | -----------
-percentage_to_battery | No | Sets the percentage of any excess solar that is diverted to the battery. For example as value of 50 will send half of the excess solar out to the grid and half into the battery.
+percent_to_battery | No | Sets the percentage of any excess solar that is diverted to the battery. For example as value of 50 will send half of the excess solar out to the grid and half into the battery.
 
 ### Force Charge
 
