@@ -6,7 +6,7 @@ To use, add this repository through HACS and install the Eleven Energy Integrati
 
 ## Work Modes
 
-The current Work Mode operating on each inverter is shows in the sensor.{device_id}_system_work_mode entity and is read only. To change work modes you can perform an Action ( Service Call in old money ) which allows you to specify additional attributes that control the work mode.
+The current Work Mode operating on each inverter is shown in the sensor.{device_id}_system_work_mode entity and is read only. To change work modes you can perform an Action ( Service Call in old money ) which allows you to specify additional attributes that control the work mode.
 
 An action can be selected within an automation by selecting "Add action" then "Other actions" then "Perform an action", then select the appropriate service action from the list below. You can then select the device to perform the action on, or leave blank and the first Hybrid Inverter on the site will be used.
 
