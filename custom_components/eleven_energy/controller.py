@@ -3,11 +3,13 @@
 import asyncio
 import logging
 
+from aiohttp import ClientResponse
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
+from homeassistant.helpers.device_registry import DeviceEntry
 
 from .const import BASE_URL, PLATFORMS, POLL_INTERVAL_SECONDS
 from .hybrid_inverter import HybridInverter
@@ -32,10 +34,27 @@ class Controller:
         self.devices = {}
         self.platforms_started = 0
 
+    async def send_reliable_post(self, url_suffix: str, json: dict) -> ClientResponse:
+        """Make multiple attempts to post a request, doubling the delays each time."""
+        loops = 1
+        while loops <= 32:
+            response = await async_get_clientsession(self.hass).post(
+                BASE_URL + url_suffix,
+                headers=self.headers,
+                json=json,
+            )
+
+            if response.status == 200:
+                return response
+
+            _LOGGER.info("Set workmode got status %s", response.status)
+            await asyncio.sleep(loops)
+            loops = loops * 2
+
+        return response  # return the last received response
+
     async def set_work_mode(self, mode, data) -> None:
         """Change the system work mode."""
-        _LOGGER.info("SET WORKMODE %s %s", mode, data)
-
         device_id = None
 
         # If a device is specified, find the cloud device ID from the device identifier
@@ -60,7 +79,7 @@ class Controller:
 
         workMode = None
         params = {}
-        _LOGGER.info("Work mode is %s", mode)
+
         if mode == "set_work_mode_self_consumption":
             _LOGGER.info("Self consumption")
             workMode = "selfConsumption"
@@ -97,20 +116,14 @@ class Controller:
 
         params["workMode"] = workMode
 
-        loops = 1
-        while loops <= 32:
-            response = await async_get_clientsession(self.hass).post(
-                BASE_URL + "devices/" + device_id + "/operatingMode",
-                headers=self.headers,
-                json=params,
+        response = await self.send_reliable_post(
+            "devices/" + device_id + "/operatingMode", params
+        )
+
+        if response.status != 200:
+            _LOGGER.warning(
+                "Unable to change work mode, received status %s", response.status
             )
-
-            if response.status == 200:
-                return
-
-            _LOGGER.warning("Set workmode got status %s", response.status)
-            await asyncio.sleep(loops)
-            loops = loops * 2
 
     async def initialise(self):
         """Set up the controller."""

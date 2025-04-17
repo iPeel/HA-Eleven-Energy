@@ -197,7 +197,6 @@ class HybridInverter:
         for key in inner:
             sensor_key = hive + "." + key
             if sensor_key in self.sensor_entities:
-                _LOGGER.info("Setting sensor %s to %s", sensor_key, inner[key])
                 self.sensor_entities[sensor_key].set_native_value(inner[key])
 
     async def update(self, json):
