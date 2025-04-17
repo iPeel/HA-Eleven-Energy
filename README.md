@@ -8,7 +8,7 @@ To use, add this repository through HACS and install the Eleven Energy Integrati
 
 Install this integration into HACS, from the Code button above copy the Clone URL and then in the HACS section of Home Assistant, click the three dots in the top right corner, select "Custom Repositories" then paste in this repository URL. You can then search the HACS store for "Eleven Energy" to find and install this integration.
 
-You will also need an API token obtained through the Site & System Settings page of the Eleven Energy app. Once you have a token, from the Device page in Home Assistant, add an integration, choose "Eleven Energy" and add your API token when requested.
+You will also need an API token obtained through the Site & System Settings page of the Eleven Energy app. Once you have a token, from the Devices page in Home Assistant, add an integration, choose "Eleven Energy" and add your API token when requested.
 
 ## Work Modes
 
