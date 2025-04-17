@@ -83,8 +83,8 @@ class Controller:
         if mode == "set_work_mode_self_consumption":
             _LOGGER.info("Self consumption")
             workMode = "selfConsumption"
-            if "percentage_to_battery" in data:
-                params["targetExcessPc"] = data["percentage_to_battery"]
+            if "percent_to_battery" in data:
+                params["targetExcessPc"] = data["percent_to_battery"]
 
         if mode == "set_work_mode_force_charge":
             workMode = "forceCharge"
