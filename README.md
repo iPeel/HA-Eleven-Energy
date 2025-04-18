@@ -2,6 +2,9 @@
 
 Connects to your Eleven Energy site ( cloud connection ) and obtains minute by minute stats from your inverter. It also allows changing of the hybrid work mode through service calls.
 
+![image](https://github.com/user-attachments/assets/0633a512-6b2b-4f55-822b-78d9a788463c)
+
+
 ## Installation
 
 To use, add this repository through HACS and install the Eleven Energy Integration. You require HACS to be installed, follow the guide at [the HACS download site](https://www.hacs.xyz/docs/use/download/download/) for more details.
