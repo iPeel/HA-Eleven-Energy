@@ -2,7 +2,12 @@
 
 import logging
 
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+)
 from homeassistant.components.sensor import (
+    EntityCategory,
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
@@ -168,6 +173,7 @@ class HybridInverter:
                 unit_of_measurement=UnitOfPower.KILO_WATT,
                 decimals=2,
                 icon="mdi:flash",
+                category=EntityCategory.DIAGNOSTIC,
             ),
             "system.voltage": InverterSensorEntity(
                 hass,
@@ -178,6 +184,7 @@ class HybridInverter:
                 device_class=SensorDeviceClass.VOLTAGE,
                 decimals=2,
                 icon="mdi:flash",
+                category=EntityCategory.DIAGNOSTIC,
             ),
             "operatingMode.workMode": InverterSensorEntity(
                 hass,
@@ -189,6 +196,28 @@ class HybridInverter:
                 unit_of_measurement=None,
                 state_class=None,
             ),
+            "status": InverterSensorEntity(
+                hass,
+                device_info=self.device_info,
+                device_id=self.device_id,
+                entity_type="system_status",
+                icon="mdi:check-network-outline",
+                device_class=None,
+                unit_of_measurement=None,
+                state_class=None,
+                category=EntityCategory.DIAGNOSTIC,
+            ),
+        }
+        self.binary_sensor_entities = {
+            "online": InverterBinarySensorEntity(
+                hass,
+                device_info=self.device_info,
+                device_id=self.device_id,
+                device_class=BinarySensorDeviceClass.CONNECTIVITY,
+                category=EntityCategory.DIAGNOSTIC,
+                entity_type="system_online",
+                icon="mdi:cloud-check-variant",
+            )
         }
 
     def processHive(self, json, hive: str):
@@ -205,7 +234,6 @@ class HybridInverter:
 
     async def update(self, json):
         """Update sensor values from state."""
-
         # process useable hives from the json payload
         self.processHive(json, "load")
         self.processHive(json, "battery")
@@ -213,6 +241,10 @@ class HybridInverter:
         self.processHive(json, "grid")
         self.processHive(json, "system")
         self.processHive(json, "operatingMode")
+
+        self.sensor_entities["status"].set_native_value(json["status"])
+
+        self.binary_sensor_entities["online"].set_binary_value(json["online"])
 
 
 class InverterSensorEntity(SensorEntity):
@@ -272,3 +304,57 @@ class InverterSensorEntity(SensorEntity):
 
         self._attr_native_value = new_state
         self.async_write_ha_state()
+
+
+class InverterBinarySensorEntity(BinarySensorEntity):
+    """A binary sensor for inverter entities."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        device_info: DeviceInfo,
+        device_id: str,
+        entity_type,
+        icon,
+        category=None,
+        device_class=None,
+    ) -> None:
+        """Init binary sensor entity."""
+        self.currentValue = None
+        self._attr_device_info = device_info
+        self.hass = hass
+        entity_id = generate_entity_id(
+            "sensor.{}",
+            device_id + "_" + entity_type,
+            [],
+            hass,
+        )
+        self.entity_id = entity_id
+        self._attr_has_entity_name = True
+
+        self._attr_translation_key: str = entity_type.lower()
+        self._attr_unique_id = device_id + "_" + entity_type
+
+        self._attr_is_on = False
+        self.currentValue = False
+
+        self._attr_native_device_class = device_class
+        self._attr_device_class = device_class
+
+        self._attr_icon = icon
+
+        if category is not None:
+            self._attr_entity_category = category
+
+    def set_binary_value(self, new_state: bool) -> None:
+        """Set the HomeAssistant sensor based on inverter."""
+        newValue = new_state
+
+        if self.currentValue is not None and self.currentValue == newValue:
+            # avoid noise...
+            return
+
+        self._attr_is_on = newValue
+        self.currentValue = newValue
+
+        self._async_write_ha_state()

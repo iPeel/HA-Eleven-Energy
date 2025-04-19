@@ -76,7 +76,23 @@
                     "idlebattery": "Idle Battery",
                     "pvExportPriority": "PV Export Priority"
                     }
+            },
+            "system_status": {
+                "name": "Status",
+                "state": {
+                    "unknown": "Unknown",
+                    "standby": "Standby",
+                    "ready": "Powered Off",
+                    "onGrid": "On Grid",
+                    "offGrid": "Off Grid"
+                    }
+            }
+        },
+        "binary_sensor": {
+            "system_online": {
+                "name": "Online"
             }
         }
+
     }
 }
