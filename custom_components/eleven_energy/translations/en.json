@@ -44,7 +44,7 @@
                 "name": "Consumption"
             },
             "battery_power": {
-                "name": "Battery"
+                "name": "Battery Power"
             },
             "battery_energy_in_today": {
                 "name": "Charged Today"
