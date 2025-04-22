@@ -102,6 +102,8 @@ class Controller:
                     params["rate"] = data["target_power"]
                 if "include_excess_solar" in data:
                     params["addAverageExcess"] = data["include_excess_solar"]
+                if "overdrive" in data:
+                    params["overdrive"] = data["overdrive"]
 
             case "set_work_mode_pv_export":
                 workMode = "pvExportPriority"
