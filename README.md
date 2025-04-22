@@ -57,6 +57,7 @@ Key | Required | Description
 --- | --- | -----------
 target_power | Yes | The amount of power in kW to export to the grid, including excess solar and battery power.
 target_percent | Yes | The target State Of Charge to discharge to.
+include_excess_solar | No | When true, adds the average amount of excess PV over the cunsumed amount to the export, useful when ensuring the battery is discharged to a specified level.
 
 ### PV Export Priority
 
