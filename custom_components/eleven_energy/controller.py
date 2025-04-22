@@ -100,6 +100,8 @@ class Controller:
                     params["targetSoc"] = data["target_percent"]
                 if "target_power" in data:
                     params["rate"] = data["target_power"]
+                if "include_excess_solar" in data:
+                    params["addAverageExcess"] = data["include_excess_solar"]
 
             case "set_work_mode_pv_export":
                 workMode = "pvExportPriority"

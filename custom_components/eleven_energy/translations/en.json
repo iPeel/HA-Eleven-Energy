@@ -38,13 +38,13 @@
                 "name": "PV Energy Today"
             },
             "load_energy_today": {
-                "name": "Load Energy Today"
+                "name": "Consumed Today"
             },
             "load_power": {
-                "name": "Load Power"
+                "name": "Consumption"
             },
             "battery_power": {
-                "name": "Battery Power"
+                "name": "Battery"
             },
             "battery_energy_in_today": {
                 "name": "Charged Today"
