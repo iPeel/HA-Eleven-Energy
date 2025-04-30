@@ -74,7 +74,8 @@
                     "forceCharge": "Force Charge",
                     "gridExport": "Grid Export",
                     "idlebattery": "Idle Battery",
-                    "pvExportPriority": "PV Export Priority"
+                    "pvExportPriority": "PV Export Priority",
+                    "targetSoc": "Target State of Charge"
                     }
             },
             "system_status": {
