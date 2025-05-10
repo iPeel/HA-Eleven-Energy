@@ -115,6 +115,18 @@ class Controller:
                 if "allow_discharging" in data:
                     params["allowDischarge"] = data["allow_discharging"]
 
+            case "set_work_mode_target_soc":
+                workMode = "targetSoc"
+                if "target_soc" in data:
+                    params["targetSoc"] = data["target_soc"]
+                if "max_charge_rate" in data:
+                    params["maxChargeRate"] = data["max_charge_rate"]
+                if "max_discharge_rate" in data:
+                    params["maxDischargeRate"] = data["max_discharge_rate"]
+                if "target_minutes" in data:
+                    params["targetMinutes"] = data["target_minutes"]
+                
+
             case _:
                 _LOGGER("Unable to determine work mode from %s", mode)
                 return
