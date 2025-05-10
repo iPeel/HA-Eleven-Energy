@@ -119,10 +119,10 @@ class Controller:
                 workMode = "targetSoc"
                 if "target_soc" in data:
                     params["targetSoc"] = data["target_soc"]
-                if "max_charge_rate" in data:
-                    params["maxChargeRate"] = data["max_charge_rate"]
-                if "max_discharge_rate" in data:
-                    params["maxDischargeRate"] = data["max_discharge_rate"]
+                if "max_charge_power" in data:
+                    params["maxChargeRate"] = data["max_charge_power"]
+                if "max_discharge_power" in data:
+                    params["maxDischargeRate"] = data["max_discharge_power"]
                 if "target_minutes" in data:
                     params["targetMinutes"] = data["target_minutes"]
                 
