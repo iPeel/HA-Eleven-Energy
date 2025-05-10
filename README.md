@@ -67,9 +67,9 @@ To switch to this work mode, use the "_set_work_mode_pv_export_" service call wi
 
 ### Target State Of Charge
 
-Manages grid export, battery charging and battery discharging based on a specified target state of charge and duration. The energy management system will then attempt to balance the amount of excess solar and battery to reach the specified state of charge by the end of the period, using an average of solar excess and available battery. The system will not force charge from the grid to reach a higher state of charge goal, only using excess solar to charge the battery.
+Manages grid export, battery charging and battery discharging based on a specified target state of charge and duration. The energy management system will then attempt to balance the amount of excess solar and battery to reach the specified state of charge by the end of the period, using an average of solar excess and available battery. A higher or lower state of charge goal may be specified than the currect state of charge, however the system will not force charge from the grid to reach a higher state of charge goal, only using excess solar to charge the battery.
 
-To avoid target charging and export power reaching infinity or excessive values, the algorithm tops out at 30 minutes remaining. I.e. if the work mode stays in Target SoC mode or reaches within 30 minutes of the target period, the alggorithm treats all calculations as if there are 30 minutes remaining to reach the target.
+To avoid target charging and export power reaching infinity or excessive values, the algorithm tops out at 30 minutes remaining. I.e. if the work mode stays in Target SoC mode or reaches within 30 minutes of the target period, the algorithm treats all calculations as if there are 30 minutes remaining to reach the target.
 
 To switch to this work mode, use the "_set_work_mode_target_soc_" service call with the following optional parameters:
 
