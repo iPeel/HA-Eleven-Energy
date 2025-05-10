@@ -30,7 +30,7 @@ Available work modes are as follows:
 
 This is the default work mode, with excess solar diverted to the battery by default, and the battery supplying local loads if needed.
 
-To switch to thie work mode, use the "_set_work_mode_self_consumption_" service call with the following parameters:
+To switch to this work mode, use the "_set_work_mode_self_consumption_" service call with the following parameters:
 
 Key | Required | Description
 --- | --- | -----------
@@ -40,7 +40,7 @@ percent_to_battery | No | Sets the percentage of any excess solar that is divert
 
 Charges the battery at a set power rate with energy from the grid. Once the target state of charge has been reached, the system will remain is a state where grid power is consumed to supply local loads until the work mode is changed.
 
-To switch to thie work mode, use the "_set_work_mode_force_charge_" service call with the following parameters:
+To switch to this work mode, use the "_set_work_mode_force_charge_" service call with the following parameters:
 
 Key | Required | Description
 --- | --- | -----------
@@ -51,7 +51,7 @@ target_percent | Yes | The target State Of Charge to charge the battery up to, a
 
 Force discharges the battery and uses excess solar to export to the grid at the specified rate until the target State of Charge is reached, thereafter the system will export all excess solar until the work mode is changed.
 
-To switch to thie work mode, use the "_set_work_mode_grid_export_" service call with the following optional parameters:
+To switch to this work mode, use the "_set_work_mode_grid_export_" service call with the following optional parameters:
 
 Key | Required | Description
 --- | --- | -----------
@@ -63,13 +63,28 @@ include_excess_solar | No | When true, adds the average amount of excess PV over
 
 Exports all excess solar to the grid instead of charging the battery, if the amount of excess solar exceeds the export limit of the site then any excess is used to charge the battery.
 
-To switch to thie work mode, use the "_set_work_mode_pv_export_" service call with no parameters.
+To switch to this work mode, use the "_set_work_mode_pv_export_" service call with no parameters.
+
+### Target State Of Charge
+
+Manages grid export, battery charging and battery discharging based on a specified target state of charge and duration. The energy management system will then attempt to balance the amount of excess solar and battery to reach the specified state of charge by the end of the period, using an average of solar excess and available battery. The system will not force charge from the grid to reach a higher state of charge goal, only using excess solar to charge the battery.
+
+To avoid target charging and export power reaching infinity or excessive values, the algorithm tops out at 30 minutes remaining. I.e. if the work mode stays in Target SoC mode or reaches within 30 minutes of the target period, the alggorithm treats all calculations as if there are 30 minutes remaining to reach the target.
+
+To switch to this work mode, use the "_set_work_mode_target_soc_" service call with the following optional parameters:
+
+Key | Required | Description
+--- | --- | -----------
+target_soc | Yes | The desired state of charge in percent to reach at the end of the period.
+target_minutes | Yes | The number of minutes from initiating this command to reach the target state of charge by.
+max_charge_power | No | The amount of kilowatts max to charge the battery at. Defaults to the maximum charge rate of the battery.
+max_discharge_power | No | The amount of kilowats max to discharge the battery at. Defaults to the maximum discharge rate of the battery.
 
 ### Idle Battery
 
 Allows the system to "coast" without using any battery, useful if you would prefer to reserve battery capacity for an upcoming period of high cost import.
 
-To switch to thie work mode, use the "_set_work_mode_idle_battery_" service call with the following parameters:
+To switch to this work mode, use the "_set_work_mode_idle_battery_" service call with the following parameters:
 
 Key | Required | Description
 --- | --- | -----------
