@@ -153,7 +153,10 @@ class Controller:
         async def periodic():
             while True:
                 _LOGGER.debug("Polling Eleven Energy")
-                await self.poll_devices()
+                try:
+                    await self.poll_devices()
+                except:  # noqa: E722
+                    _LOGGER.warning("Unable to poll Eleven API")
                 await asyncio.sleep(
                     POLL_INTERVAL_SECONDS
                 )  # first because we polled it in await after init.
