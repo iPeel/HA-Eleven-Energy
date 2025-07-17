@@ -233,7 +233,6 @@ class HybridInverter:
             val = inner[key]
             if isinstance(val, str):
                 val = val.lower()
-            
                 
             if sensor_key in self.sensor_entities:
                 self.sensor_entities[sensor_key].set_native_value(val)
@@ -248,7 +247,7 @@ class HybridInverter:
         self.processHive(json, "system")
         self.processHive(json, "operatingMode")
 
-        self.sensor_entities["status"].set_native_value(json["status"])
+        self.sensor_entities["status"].set_native_value(json["status"].lower())
 
         self.binary_sensor_entities["online"].set_binary_value(json["online"])
 
