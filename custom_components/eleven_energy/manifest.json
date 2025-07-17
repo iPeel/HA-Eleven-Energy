@@ -1,17 +1,17 @@
 {
-    "domain": "eleven_energy",
-    "name": "Eleven Energy",
     "codeowners": [
       "@iPeel"
     ],
     "config_flow": true,
     "dependencies": [],
     "documentation": "https://github.com/iPeel/HA-Eleven-Energy/",
-    "issue_tracker": "https://github.com/iPeel/HA-Eleven-Energy/issues",
+    "domain": "eleven_energy",
     "integration_type": "hub",
     "iot_class": "cloud_polling",
+    "issue_tracker": "https://github.com/iPeel/HA-Eleven-Energy/issues",
+    "name": "Eleven Energy",
     "requirements": [],
     "ssdp": [],
-    "zeroconf": [],
     "version": "1.0"
-  }
+    "zeroconf": [],
+}
