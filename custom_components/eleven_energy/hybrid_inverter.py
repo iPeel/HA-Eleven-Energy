@@ -231,8 +231,7 @@ class HybridInverter:
             sensor_key = hive + "." + key
             
             val = inner[key]
-            if isinstance(val, str):
-                val = val.lower()
+            
                 
             if sensor_key in self.sensor_entities:
                 self.sensor_entities[sensor_key].set_native_value(val)
