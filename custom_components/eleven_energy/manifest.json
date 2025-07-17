@@ -1,7 +1,5 @@
 {
-    "codeowners": [
-      "@iPeel"
-    ],
+    "codeowners": ["@iPeel"],
     "config_flow": true,
     "dependencies": [],
     "documentation": "https://github.com/iPeel/HA-Eleven-Energy/",
@@ -12,6 +10,6 @@
     "name": "Eleven Energy",
     "requirements": [],
     "ssdp": [],
-    "version": "1.0"
-    "zeroconf": [],
+    "version": "1.0",
+    "zeroconf": []
 }
