@@ -70,12 +70,12 @@
             "system_work_mode": {
                 "name": "Work Mode",
                 "state": {
-                    "selfConsumption": "Self Consumption",
-                    "forceCharge": "Force Charge",
-                    "gridExport": "Grid Export",
+                    "selfconsumption": "Self Consumption",
+                    "forcecharge": "Force Charge",
+                    "gridexport": "Grid Export",
                     "idlebattery": "Idle Battery",
-                    "pvExportPriority": "PV Export Priority",
-                    "targetSoc": "Target State of Charge"
+                    "pvexportpriority": "PV Export Priority",
+                    "targetsoc": "Target State of Charge"
                     }
             },
             "system_status": {
@@ -84,8 +84,8 @@
                     "unknown": "Unknown",
                     "standby": "Standby",
                     "ready": "Powered Off",
-                    "onGrid": "On Grid",
-                    "offGrid": "Off Grid"
+                    "ongrid": "On Grid",
+                    "offgrid": "Off Grid"
                     }
             }
         },
