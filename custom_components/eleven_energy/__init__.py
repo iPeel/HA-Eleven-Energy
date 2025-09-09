@@ -81,6 +81,13 @@ def setup(hass: HomeAssistant, entry: ConfigEntry):
         supports_response=SupportsResponse.NONE,
     )
 
+    hass.services.register(
+        DOMAIN,
+        "set_work_mode_reset",
+        handle_set_workmode,
+        supports_response=SupportsResponse.NONE,
+    )
+
     _LOGGER.info("Registered Eleven Energy services")
 
     return True
