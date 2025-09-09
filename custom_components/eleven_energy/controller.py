@@ -125,7 +125,9 @@ class Controller:
                     params["maxDischargeRate"] = data["max_discharge_power"]
                 if "target_minutes" in data:
                     params["targetMinutes"] = data["target_minutes"]
-                
+                    
+            case "set_work_mode_reset":
+                workMode = "reset"
 
             case _:
                 _LOGGER("Unable to determine work mode from %s", mode)
