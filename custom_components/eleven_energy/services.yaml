@@ -73,5 +73,13 @@ set_work_mode_idle_battery:
       description: Allow discharging of the battery ( i.e. only disallow charging )
       required: false
 
+set_work_mode_reset:
+  name: Reset work mode
+  description: Resets the work mode based on system configuration or schedules
+  target:
+    entity:
+      domain: sensor
+      integration: eleven_energy
+
 
 
