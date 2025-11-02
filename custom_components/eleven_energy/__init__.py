@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 
+import voluptuous as vol
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 
@@ -12,6 +14,16 @@ from .controller import Controller
 
 _LOGGER = logging.getLogger(__name__)
 
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Required("token", description="API Token"): str,
+            }
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Eleven Energy from a config entry."""
