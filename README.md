@@ -2,7 +2,6 @@
 
 Connects to your Eleven Energy site ( cloud connection ) and obtains minute by minute stats from your inverter. It also allows changing of the hybrid work mode through service calls.
 
-[![GitHub Release][releases-shield]][releases]
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/iPeel/HA-Eleven-Energy)
 ![Project Maintenance][maintenance-shield]
 [![GitHub Activity][commits-shield]][commits]
