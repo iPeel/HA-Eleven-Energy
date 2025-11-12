@@ -2,6 +2,11 @@
 
 Connects to your Eleven Energy site ( cloud connection ) and obtains minute by minute stats from your inverter. It also allows changing of the hybrid work mode through service calls.
 
+[![GitHub Release][releases-shield]][releases]
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/iPeel/HA-Eleven-Energy)
+![Project Maintenance][maintenance-shield]
+[![GitHub Activity][commits-shield]][commits]
+
 ![image](https://github.com/user-attachments/assets/03d5442b-45a8-466d-b946-a090bafffff7)
 
 
@@ -9,7 +14,10 @@ Connects to your Eleven Energy site ( cloud connection ) and obtains minute by m
 
 To use, add this repository through HACS and install the Eleven Energy Integration. You require HACS to be installed, follow the guide at [the HACS download site](https://www.hacs.xyz/docs/use/download/download/) for more details.
 
-Install this integration into HACS, from the Code button above copy the Clone URL and then in the HACS section of Home Assistant, click the three dots in the top right corner, select "Custom Repositories" then paste in this repository URL. You can then search the HACS store for "Eleven Energy" to find and install this integration.
+Once HACS is installed on your system:
+
+* [Add the Eleven Energy repository](https://my.home-assistant.io/redirect/hacs_repository/?owner=iPeel&repository=HA-Eleven-Energy&category=integration) to your HACS installation
+* Click `Download`
 
 You will also need an API token obtained through the Site & System Settings page of the Eleven Energy app. Once you have a token, from the Devices page in Home Assistant, add an integration, choose "Eleven Energy" and add your API token when requested.
 
@@ -90,3 +98,16 @@ Key | Required | Description
 --- | --- | -----------
 allow_charging | No | Set to true if you still want to allow charging of the battery with excess solar i.e. only prohibit discharging.
 allow_discharging | No | Set to true if you still want to allow discharging of the battery i.e. only prohibit charging.
+
+
+
+
+
+
+[commits-shield]: https://img.shields.io/github/commit-activity/y/iPeel/HA-Eleven-Energy.svg?style=for-the-badge
+[commits]: https://github.com/iPeel/HA-Eleven-Energy/commits/master
+[devcontainer]: https://code.visualstudio.com/docs/remote/containers
+[license-shield]: https://img.shields.io/github/license/iPeel/HA-Eleven-Energy.svg?style=for-the-badge
+[maintenance-shield]: https://img.shields.io/maintenance/yes/2025.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/github/release/iPeel/HA-Eleven-Energy.svg?style=for-the-badge
+[releases]: https://github.com/iPeel/HA-Eleven-Energy/releases
