@@ -10,13 +10,16 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import (
+    config_entry_oauth2_flow,
     config_validation as cv,
     entity_registry as er,
     issue_registry as ir,
 )
+from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, PLATFORMS
 from .controller import Controller
+from .oauth import async_register_implementation
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,6 +36,16 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up the integration itself.
+
+    The OAuth implementation is registered here rather than per config entry, because the config
+    flow needs it before there is an entry to attach it to.
+    """
+    async_register_implementation(hass)
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Eleven Energy from a config entry."""
 
@@ -42,7 +55,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN] = {}
         hass.data[DOMAIN]["entities"] = []
 
-    controller = Controller(entry.data["token"], hass, entry)
+    # Two shapes of credential. An API key is the string the person pasted in; a signed-in
+    # account stores the token as a structure Home Assistant maintains, and the session is what
+    # keeps it fresh. The presence of auth_implementation is what tells them apart - it is set
+    # only by the OAuth flow.
+    if "auth_implementation" in entry.data:
+        implementation = (
+            await config_entry_oauth2_flow.async_get_config_entry_implementation(
+                hass, entry
+            )
+        )
+        session = config_entry_oauth2_flow.OAuth2Session(hass, entry, implementation)
+        controller = Controller(None, hass, entry, session=session)
+    else:
+        controller = Controller(entry.data["token"], hass, entry)
+
     hass.data[DOMAIN]["controller"] = controller
     await controller.initialise()
 

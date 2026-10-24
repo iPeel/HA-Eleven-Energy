@@ -8,11 +8,11 @@ from typing import Any
 from aiohttp import ClientSession
 import voluptuous as vol
 
-from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, OptionsFlow
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import config_entry_oauth2_flow
 
 from .const import BASE_URL, DOMAIN
 
@@ -65,17 +65,48 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     return {"title": "Eleven Energy"}
 
 
-class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Eleven ENergy."""
+class ConfigFlow(
+    config_entry_oauth2_flow.AbstractOAuth2FlowHandler, domain=DOMAIN
+):
+    """Handle a config flow for Eleven Energy.
+
+    Two ways in. Signing in is the one to prefer: the person authenticates on our own page,
+    chooses which system to share and names the connection, and Home Assistant never handles a
+    credential they typed. An API key is still offered because it is the right answer for a
+    headless setup, and because everyone already running has one.
+    """
+
+    DOMAIN = DOMAIN
+    VERSION = 1
+
+    @property
+    def logger(self) -> logging.Logger:
+        """Return the logger, as the OAuth flow handler requires."""
+        return _LOGGER
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step."""
+        """Offer the choice between signing in and pasting a key."""
 
         entries = self.hass.config_entries.async_entries(DOMAIN)
         if entries:
             return self.async_abort(reason="already_setup")
+
+        return self.async_show_menu(step_id="user", menu_options=["auth", "token"])
+
+    async def async_oauth_create_entry(self, data: dict) -> FlowResult:
+        """Finish a sign-in.
+
+        data carries the token Home Assistant obtained and the implementation that obtained it,
+        both of which it needs later to refresh. Stored as given.
+        """
+        return self.async_create_entry(title="Eleven Energy", data=data)
+
+    async def async_step_token(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Set up with an API key instead of signing in."""
 
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -92,7 +123,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title=info["title"], data=user_input)
 
         return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+            step_id="token", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
         )
 
     @staticmethod

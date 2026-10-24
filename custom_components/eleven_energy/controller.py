@@ -8,7 +8,11 @@ from aiohttp import ClientResponse
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import (
+    config_entry_oauth2_flow,
+    device_registry as dr,
+    entity_registry as er,
+)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 
@@ -21,19 +25,44 @@ _LOGGER = logging.getLogger(__name__)
 class Controller:
     """Controller class orchestrating the data fetching and entitities."""
 
-    def __init__(self, token: str, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Initialise the controller."""
+    def __init__(
+        self,
+        token: str | None,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        session: config_entry_oauth2_flow.OAuth2Session | None = None,
+    ) -> None:
+        """Initialise the controller.
+
+        Either an API key, which never changes, or an OAuth session, whose access token lasts
+        eight hours and is refreshed as needed. Headers are built per request for that reason
+        rather than once here.
+        """
         self.token = token
+        self.session = session
         self.hass = hass
         self.config = entry
         self.poller_task = None
-        self.headers = {
+        self.devices = {}
+        self.platforms_started = 0
+
+    async def auth_headers(self) -> dict:
+        """The headers for a call, with a token that is valid now.
+
+        For a signed-in account this refreshes the access token when it is close to expiring,
+        which is why every call goes through here instead of reusing a header built at startup.
+        """
+        if self.session is not None:
+            await self.session.async_ensure_token_valid()
+            token = self.session.token["access_token"]
+        else:
+            token = self.token
+
+        return {
             "accept": "application/json",
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
-        self.devices = {}
-        self.platforms_started = 0
 
     async def send_reliable_post(self, url_suffix: str, json: dict) -> ClientResponse:
         """Make multiple attempts to post a request, doubling the delays each time."""
@@ -41,7 +70,7 @@ class Controller:
         while loops <= 32:
             response = await async_get_clientsession(self.hass).post(
                 BASE_URL + url_suffix,
-                headers=self.headers,
+                headers=await self.auth_headers(),
                 json=json,
             )
 
@@ -216,7 +245,7 @@ class Controller:
         """Poll all devices for updates."""
         for device in self.devices.values():
             response = await async_get_clientsession(self.hass).get(
-                BASE_URL + "devices/" + device.device_id, headers=self.headers
+                BASE_URL + "devices/" + device.device_id, headers=await self.auth_headers()
             )
 
             if response.status != 200:
@@ -231,7 +260,7 @@ class Controller:
     async def poll_site(self):
         """Poll site for device changes."""
         response = await async_get_clientsession(self.hass).get(
-            BASE_URL + "site", headers=self.headers
+            BASE_URL + "site", headers=await self.auth_headers()
         )
 
         if response.status != 200:
@@ -279,7 +308,7 @@ class Controller:
         """
         try:
             response = await async_get_clientsession(self.hass).get(
-                BASE_URL + "devices/" + device_id, headers=self.headers
+                BASE_URL + "devices/" + device_id, headers=await self.auth_headers()
             )
 
             if response.status != 200:
