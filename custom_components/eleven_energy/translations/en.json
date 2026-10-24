@@ -196,43 +196,43 @@
     },
     "services": {
         "set_work_mode_self_consumption": {
-            "name": "Self consumption",
+            "name": "Self Consumption",
             "description": "Solar covers the house, surplus charges the battery, and once it is full the surplus is exported. The battery makes up any shortfall. This is the normal resting state.",
             "fields": {
                 "percent_to_battery": {
-                    "name": "Surplus to battery",
+                    "name": "Percentage To Battery",
                     "description": "How much of the surplus solar to store rather than export, as a percentage. Leave unset to store all of it."
                 }
             }
         },
         "set_work_mode_force_charge": {
-            "name": "Force charge",
+            "name": "Grid Charge",
             "description": "Charge the battery from the grid at a set power until it reaches a target. Once there, the house is supplied from the grid until the mode is changed.",
             "fields": {
                 "target_power": {
-                    "name": "Charge power",
+                    "name": "Target Power",
                     "description": "Battery charge power in kW. A lower rate may be used if the battery is current limited, such as at a low state of charge."
                 },
                 "target_percent": {
-                    "name": "Target state of charge",
+                    "name": "Target SoC %",
                     "description": "The state of charge to stop charging at."
                 }
             }
         },
         "set_work_mode_grid_export": {
-            "name": "Grid export",
+            "name": "Grid Export",
             "description": "Discharge the battery to the grid at a set power until it reaches a target. After that the house is still supplied from the battery, but surplus solar is exported rather than stored.",
             "fields": {
                 "target_power": {
-                    "name": "Discharge power",
+                    "name": "Target Power",
                     "description": "Battery discharge power in kW. This is battery power, not power at the meter: with 1 kW of house load, 5 kW here puts about 4 kW on the grid."
                 },
                 "target_percent": {
-                    "name": "Target state of charge",
+                    "name": "Target SoC %",
                     "description": "The state of charge to stop discharging at."
                 },
                 "include_excess_solar": {
-                    "name": "Add surplus solar",
+                    "name": "Add Surplus Solar",
                     "description": "Export surplus solar on top of the discharge power rather than storing it."
                 },
                 "overdrive": {
@@ -242,48 +242,48 @@
             }
         },
         "set_work_mode_pv_export": {
-            "name": "PV export priority",
+            "name": "Excess PV Export",
             "description": "Like self consumption, but surplus solar is exported before it is stored. If more solar is available than can be exported, the remainder goes to the battery.",
             "fields": {}
         },
         "set_work_mode_idle_battery": {
-            "name": "Idle battery",
+            "name": "Idle Battery",
             "description": "Hold the battery where it is. Charging and discharging can be allowed separately.",
             "fields": {
                 "allow_charging": {
-                    "name": "Allow charging",
+                    "name": "Allow Charging",
                     "description": "Permit charging the battery from surplus solar."
                 },
                 "allow_discharging": {
-                    "name": "Allow discharging",
+                    "name": "Allow Discharging",
                     "description": "Permit discharging the battery to supply the house."
                 }
             }
         },
         "set_work_mode_target_soc": {
-            "name": "Reach a state of charge",
+            "name": "Target State Of Charge",
             "description": "Reach a target state of charge within a deadline, working out the rate from the house load as it goes. Once the target is reached the system runs in PV export priority until the mode is changed.",
             "fields": {
                 "target_soc": {
-                    "name": "Target state of charge",
+                    "name": "Target SoC %",
                     "description": "The state of charge to aim for."
                 },
                 "target_minutes": {
-                    "name": "Within",
+                    "name": "Target Minutes",
                     "description": "How long it has to get there, in minutes."
                 },
                 "max_charge_power": {
-                    "name": "Maximum charge power",
+                    "name": "Max Charge Power",
                     "description": "A ceiling in kW while charging. A lower rate may be used; this is only a maximum."
                 },
                 "max_discharge_power": {
-                    "name": "Maximum discharge power",
+                    "name": "Max Discharge Power",
                     "description": "A ceiling in kW while discharging. A lower rate may be used; this is only a maximum."
                 }
             }
         },
         "set_work_mode_reset": {
-            "name": "Hand control back",
+            "name": "Reset Work Mode",
             "description": "Restore the system's own operation. If a schedule was in effect when the mode was changed it resumes, otherwise automatic operation does. Send this when your automation has finished - until you do, the system's own optimisation stays switched off.",
             "fields": {}
         }
@@ -296,13 +296,26 @@
     },
     "device_automation": {
         "action_type": {
-            "self_consumption": "Set to self consumption",
-            "force_charge": "Charge from the grid",
-            "grid_export": "Discharge to the grid",
-            "pv_export": "Export surplus solar first",
-            "idle_battery": "Hold the battery",
-            "target_soc": "Reach a state of charge",
-            "reset": "Hand control back"
+            "self_consumption": "Self Consumption",
+            "force_charge": "Grid Charge",
+            "grid_export": "Grid Export",
+            "pv_export": "Excess PV Export",
+            "idle_battery": "Idle Battery",
+            "target_soc": "Target State Of Charge",
+            "reset": "Reset Work Mode"
+        },
+        "extra_fields": {
+            "percent_to_battery": "Percentage To Battery",
+            "target_power": "Target Power",
+            "target_percent": "Target SoC %",
+            "target_soc": "Target SoC %",
+            "target_minutes": "Target Minutes",
+            "max_charge_power": "Max Charge Power",
+            "max_discharge_power": "Max Discharge Power",
+            "allow_charging": "Allow Charging",
+            "allow_discharging": "Allow Discharging",
+            "include_excess_solar": "Add Surplus Solar",
+            "overdrive": "Overdrive"
         }
     }
 }
