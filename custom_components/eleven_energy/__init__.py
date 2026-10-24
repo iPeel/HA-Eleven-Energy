@@ -7,13 +7,11 @@ import logging
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse, callback
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import (
     config_entry_oauth2_flow,
     config_validation as cv,
-    entity_registry as er,
-    issue_registry as ir,
 )
 from homeassistant.helpers.typing import ConfigType
 
@@ -22,8 +20,6 @@ from .controller import Controller
 from .oauth import async_register_implementation
 
 _LOGGER = logging.getLogger(__name__)
-
-ISSUE_BINARY_SENSOR_RENAMED = "binary_sensor_renamed"
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -72,10 +68,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data[DOMAIN]["controller"] = controller
     await controller.initialise()
-
-    # Before the platforms add anything: the registry decides an entity's id, so the old one has
-    # to be corrected while nothing is holding it.
-    migrate_binary_sensor_ids(hass, controller)
 
     register_actions(hass)
 
@@ -141,76 +133,6 @@ SERVICE_SCHEMAS = {
     ),
     "set_work_mode_reset": vol.Schema({**TARGET_SCHEMA}),
 }
-
-
-@callback
-def migrate_binary_sensor_ids(hass: HomeAssistant, controller: Controller) -> None:
-    """Move binary sensors registered in the sensor domain to where they belong.
-
-    Early releases minted these ids in the sensor domain, so an installation that has been
-    running since then holds an entity whose id contradicts the platform that owns it. Correcting
-    what the integration asks for does not help those: the registry reuses the id it already has,
-    so the mismatch - and Home Assistant's warning about it - survives until the stored id is
-    changed, and Home Assistant stops accepting it altogether in 2027.5.
-
-    Renaming does not follow the entity into automations, scripts, dashboards or templates. That
-    is why this raises a repair issue naming every id it changed, rather than doing it quietly:
-    it breaks once, now, with an explanation, instead of breaking later on an upgrade nobody
-    connected it to.
-    """
-    registry = er.async_get(hass)
-    renamed: list[str] = []
-
-    for device in controller.devices.values():
-        for entity in device.binary_sensor_entities.values():
-            unique_id = entity.unique_id
-            if unique_id is None:
-                continue
-
-            # Registered under "sensor" is the broken case; anything else is already right.
-            old_entity_id = registry.async_get_entity_id("sensor", DOMAIN, unique_id)
-            if old_entity_id is None:
-                continue
-
-            new_entity_id = "binary_sensor." + old_entity_id.split(".", 1)[1]
-
-            try:
-                if registry.async_get(new_entity_id) is not None:
-                    # Something already holds the correct id - most likely a half-finished
-                    # earlier attempt. Drop the stale entry and let the platform register
-                    # cleanly rather than trying to merge two.
-                    registry.async_remove(old_entity_id)
-                else:
-                    registry.async_update_entity(
-                        old_entity_id, new_entity_id=new_entity_id
-                    )
-            except (ValueError, KeyError):
-                # Some versions refuse a rename that changes the domain. Removing the entry has
-                # the same outcome: the platform registers it again, correctly, a moment later.
-                _LOGGER.debug(
-                    "Could not rename %s, removing it so it registers correctly",
-                    old_entity_id,
-                )
-                registry.async_remove(old_entity_id)
-
-            _LOGGER.info("Renamed %s to %s", old_entity_id, new_entity_id)
-            renamed.append(old_entity_id + " → " + new_entity_id)
-
-    if not renamed:
-        # Nothing to say, and anything said earlier no longer applies.
-        ir.async_delete_issue(hass, DOMAIN, ISSUE_BINARY_SENSOR_RENAMED)
-        return
-
-    ir.async_create_issue(
-        hass,
-        DOMAIN,
-        ISSUE_BINARY_SENSOR_RENAMED,
-        is_fixable=False,
-        severity=ir.IssueSeverity.WARNING,
-        translation_key=ISSUE_BINARY_SENSOR_RENAMED,
-        translation_placeholders={"entities": "\n".join(renamed)},
-        learn_more_url="https://github.com/iPeel/HA-Eleven-Energy/issues/2",
-    )
 
 
 def register_actions(hass: HomeAssistant) -> None:
