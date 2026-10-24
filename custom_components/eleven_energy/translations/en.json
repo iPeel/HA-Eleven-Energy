@@ -266,5 +266,11 @@
             "description": "Restore the system's own operation. If a schedule was in effect when the mode was changed it resumes, otherwise automatic operation does. Send this when your automation has finished - until you do, the system's own optimisation stays switched off.",
             "fields": {}
         }
+    },
+    "issues": {
+        "binary_sensor_renamed": {
+            "title": "An Eleven Energy entity has been renamed",
+            "description": "The Online entity was created in the wrong category when this integration was first released: it is a binary sensor, but its entity ID began with `sensor.`. Home Assistant warns about that now and stops accepting it in version 2027.5, so it has been corrected.\n\n**Renamed:**\n\n{entities}\n\nRenaming does not update references automatically. If you use this entity in an automation, script, dashboard card or template, update it to the new ID - anything still pointing at the old one will not work.\n\nNothing else has changed, and once you have checked you can dismiss this."
+        }
     }
 }
