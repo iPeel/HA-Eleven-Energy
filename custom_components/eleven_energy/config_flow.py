@@ -9,8 +9,8 @@ from typing import Any
 from aiohttp import ClientSession
 import voluptuous as vol
 
-from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry, OptionsFlow
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.config_entries import SOURCE_REAUTH, SOURCE_RECONFIGURE
+from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_entry_oauth2_flow
@@ -116,14 +116,37 @@ class ConfigFlow(
         data carries the token Home Assistant obtained and the implementation that obtained it,
         both of which it needs later to refresh. Stored as given.
         """
+        # Signing in against an entry that already exists - because the credential stopped
+        # working, or because somebody chose to change it. Either way the entry keeps its
+        # identity, its devices and its entities, and only the credential is replaced. Creating
+        # a second entry would orphan every entity on the first.
         if self.source == SOURCE_REAUTH:
-            # Signing in again, not setting up again: the existing entry keeps its identity and
-            # its entities, and only the credential is replaced.
             return self.async_update_reload_and_abort(
                 self._get_reauth_entry(), data=data
             )
 
+        if self.source == SOURCE_RECONFIGURE:
+            return self.async_update_reload_and_abort(
+                self._get_reconfigure_entry(), data=data
+            )
+
         return self.async_create_entry(title="Eleven Energy", data=data)
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Change how an existing system is connected.
+
+        The same choice as setting up, offered against an entry that already exists - so somebody
+        who started with an API key can move to signing in, and somebody signed in can drop back
+        to a key for a headless setup. Either way the entry keeps its identity, its devices and
+        its entities; only the credential changes.
+        """
+        async_register_implementation(self.hass)
+
+        return self.async_show_menu(
+            step_id="reconfigure", menu_options=["pick_implementation", "token"]
+        )
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
         """The credential stopped working.
@@ -180,17 +203,21 @@ class ConfigFlow(
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
+                # Reached from reconfigure, this is somebody moving an existing system onto a
+                # key. The entry is updated rather than replaced, and data is set rather than
+                # merged - so the token structure left behind by a previous sign-in goes, and
+                # the entry does not end up carrying both kinds of credential.
+                if self.source == SOURCE_RECONFIGURE:
+                    return self.async_update_reload_and_abort(
+                        self._get_reconfigure_entry(), data=user_input
+                    )
+
                 return self.async_create_entry(title=info["title"], data=user_input)
 
         return self.async_show_form(
             step_id="token", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
         )
 
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
-        """Get the options flow for this handler."""
-        return OptionsFlowHandler()
 
 
 class CannotConnect(HomeAssistantError):
@@ -199,51 +226,3 @@ class CannotConnect(HomeAssistantError):
 
 class InvalidAuth(HomeAssistantError):
     """Error to indicate there is invalid auth."""
-
-
-class OptionsFlowHandler(OptionsFlow):
-    """Eleven Energy Options Flow handler.
-
-    No __init__ and no config_entry assignment. Home Assistant sets config_entry
-    on the options flow itself, and since it became a read-only property an
-    integration assigning it raises - which is the 500 the configuration dialog
-    was showing (issue #3).
-    """
-
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Eleven Energy Options Flow handler intiialiser."""
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            try:
-                await validate_input(self.hass, user_input)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except InvalidAuth:
-                errors["base"] = "invalid_auth"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
-            else:
-                # self.config_entry.version = 1
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry,
-                    data=user_input,
-                    options=self.config_entry.options,
-                    title="Eleven Energy",
-                )
-                return self.async_create_entry(
-                    title="Eleven Energy",
-                    data=user_input,
-                )
-
-        return self.async_show_form(
-            step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Required("token", default=self.config_entry.data["token"]): str,
-                }
-            ),
-            errors=errors,
-        )

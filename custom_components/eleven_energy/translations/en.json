@@ -3,7 +3,8 @@
         "abort": {
             "already_configured": "Device is already configured",
             "already_setup": "Eleven Energy is already set up.",
-            "reauth_successful": "Eleven Energy is reconnected."
+            "reauth_successful": "Eleven Energy is reconnected.",
+            "reconfigure_successful": "Eleven Energy is reconnected."
         },
         "error": {
             "cannot_connect": "Failed to connect",
@@ -35,14 +36,13 @@
                 "data": {
                     "token": "API key"
                 }
-            }
-        }
-    },
-    "options": {
-        "step": {
-            "init": {
-                "data": {
-                    "token": "API Token"
+            },
+            "reconfigure": {
+                "title": "Eleven Energy",
+                "description": "Change how this system is connected. Your devices, entities and history are kept - only the way Home Assistant authenticates changes.",
+                "menu_options": {
+                    "pick_implementation": "Sign in with Eleven Energy",
+                    "token": "Use an API key instead"
                 }
             }
         }
