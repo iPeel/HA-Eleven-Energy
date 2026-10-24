@@ -94,7 +94,13 @@ class ConfigFlow(
         if entries:
             return self.async_abort(reason="already_setup")
 
-        return self.async_show_menu(step_id="user", menu_options=["auth", "token"])
+        # pick_implementation, not auth. async_step_auth needs flow_impl, and
+        # async_step_pick_implementation is what sets it - going straight to auth reaches the
+        # authorize step with no implementation chosen and fails on a None. With one
+        # implementation registered it selects that one and moves on without asking.
+        return self.async_show_menu(
+            step_id="user", menu_options=["pick_implementation", "token"]
+        )
 
     async def async_oauth_create_entry(self, data: dict) -> FlowResult:
         """Finish a sign-in.

@@ -15,7 +15,7 @@
                 "title": "Eleven Energy",
                 "description": "Sign in with your Eleven Energy account, or set up with an API key.",
                 "menu_options": {
-                    "auth": "Sign in with Eleven Energy",
+                    "pick_implementation": "Sign in with Eleven Energy",
                     "token": "Use an API key instead"
                 }
             },
