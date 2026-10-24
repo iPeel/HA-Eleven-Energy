@@ -7,7 +7,11 @@ from aiohttp import ClientResponse
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    ConfigEntryNotReady,
+    ServiceValidationError,
+)
 from homeassistant.helpers import (
     config_entry_oauth2_flow,
     device_registry as dr,
@@ -217,9 +221,28 @@ class Controller:
             )
 
     async def initialise(self):
-        """Set up the controller."""
+        """Set up the controller.
+
+        Anything that merely stops us reaching the API - no internet yet at boot, our end having a
+        moment, a timeout - becomes ConfigEntryNotReady. Home Assistant then retries on its own
+        schedule and says "retrying" in the UI, instead of logging a stack trace and leaving the
+        integration dead until somebody notices and restarts.
+
+        A credential that has been revoked, has lapsed through disuse, or was never valid is a
+        different thing: no amount of retrying fixes it, and the person has to do something. That
+        raises ConfigEntryAuthFailed, which asks them to sign in again rather than retrying
+        forever against a key that will never work.
+        """
         _LOGGER.info("Eleven Energy initialising")
-        await self.poll_site()
+
+        try:
+            await self.poll_site()
+        except ConfigEntryAuthFailed:
+            raise
+        except Exception as err:
+            raise ConfigEntryNotReady(
+                f"Could not reach the Eleven Energy API: {err}"
+            ) from err
 
     def start_poller(self):
         """Start the async polling of inverter data."""
@@ -263,11 +286,22 @@ class Controller:
             BASE_URL + "site", headers=await self.auth_headers()
         )
 
-        if response.status != 200:
-            _LOGGER.warning(
-                "Eleven Energy call to site API responded with %s", response.status
+        # A credential problem is permanent until the person acts, so it is told apart from a
+        # service that is briefly unavailable. 401 is a key that is unknown, revoked or has
+        # lapsed; 403 is one that was never granted the scope this needs.
+        if response.status in (401, 403):
+            raise ConfigEntryAuthFailed(
+                "Eleven Energy rejected the credential with status "
+                f"{response.status}. It may have been revoked, or lapsed through disuse."
             )
-            return
+
+        if response.status != 200:
+            # Raised rather than logged and swallowed. Returning here left the integration set up
+            # with no devices and no indication why, which looks identical to a site that has no
+            # inverters.
+            raise RuntimeError(
+                f"The site call responded with status {response.status}"
+            )
 
         js = await response.json()
         for device in js["devices"]:

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import logging
 from typing import Any
 
 from aiohttp import ClientSession
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry, OptionsFlow
+from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry, OptionsFlow
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
@@ -101,7 +102,51 @@ class ConfigFlow(
         data carries the token Home Assistant obtained and the implementation that obtained it,
         both of which it needs later to refresh. Stored as given.
         """
+        if self.source == SOURCE_REAUTH:
+            # Signing in again, not setting up again: the existing entry keeps its identity and
+            # its entities, and only the credential is replaced.
+            return self.async_update_reload_and_abort(
+                self._get_reauth_entry(), data=data
+            )
+
         return self.async_create_entry(title="Eleven Energy", data=data)
+
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
+        """The credential stopped working.
+
+        Reached when the API rejects what we hold - a key revoked from the app, one that lapsed
+        through disuse, or a withdrawn consent. Which way the person came in originally decides
+        what they are asked for: signing in again, or a new key.
+        """
+        if "auth_implementation" in entry_data:
+            return await self.async_step_pick_implementation()
+
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Take a replacement API key."""
+
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                await validate_input(self.hass, user_input)
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
+            else:
+                return self.async_update_reload_and_abort(
+                    self._get_reauth_entry(), data=user_input
+                )
+
+        return self.async_show_form(
+            step_id="reauth_confirm", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+        )
 
     async def async_step_token(
         self, user_input: dict[str, Any] | None = None

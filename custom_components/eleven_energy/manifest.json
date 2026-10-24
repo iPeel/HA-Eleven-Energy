@@ -6,7 +6,8 @@
   ],
   "config_flow": true,
   "dependencies": [
-    "my"
+    "my",
+    "device_automation"
   ],
   "documentation": "https://github.com/iPeel/HA-Eleven-Energy/",
   "integration_type": "hub",
