@@ -16,6 +16,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_entry_oauth2_flow
 
 from .const import BASE_URL, DOMAIN
+from .oauth import async_register_implementation
 
 _LOGGER = logging.getLogger(__name__)
 STEP_USER_DATA_SCHEMA = vol.Schema(
@@ -94,6 +95,13 @@ class ConfigFlow(
         if entries:
             return self.async_abort(reason="already_setup")
 
+        # Registered here as well as at setup of the integration. With no config entry there is
+        # nothing to trigger that setup, so on a first install - or after the last entry is
+        # deleted - the flow would run with no implementation registered and abort with
+        # missing_configuration. Registering is a cheap callback keyed by domain, so doing it
+        # twice costs nothing.
+        async_register_implementation(self.hass)
+
         # pick_implementation, not auth. async_step_auth needs flow_impl, and
         # async_step_pick_implementation is what sets it - going straight to auth reaches the
         # authorize step with no implementation chosen and fails on a None. With one
@@ -125,6 +133,7 @@ class ConfigFlow(
         what they are asked for: signing in again, or a new key.
         """
         if "auth_implementation" in entry_data:
+            async_register_implementation(self.hass)
             return await self.async_step_pick_implementation()
 
         return await self.async_step_reauth_confirm()

@@ -69,8 +69,13 @@ class ElevenEnergyOAuth2Implementation(
 def async_register_implementation(hass: HomeAssistant) -> None:
     """Make the implementation available to the config flow.
 
-    Registered during setup of the integration rather than of a config entry, because the flow
-    needs it before any entry exists.
+    Called both from setting up the integration and from the config flow itself. Setting up the
+    integration only happens when there is a config entry to load, so on a first install - or
+    once the last entry has been deleted - the flow would otherwise find nothing registered and
+    abort with missing_configuration.
+
+    Registration is keyed by domain and replaces whatever was there, so calling it twice is
+    harmless. A fresh instance each time is mildly useful too: the code verifier comes with it.
     """
     config_entry_oauth2_flow.async_register_implementation(
         hass, DOMAIN, ElevenEnergyOAuth2Implementation(hass)
