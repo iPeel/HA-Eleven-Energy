@@ -7,11 +7,20 @@ from aiohttp import ClientResponse
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    ConfigEntryNotReady,
+    ServiceValidationError,
+)
+from homeassistant.helpers import (
+    config_entry_oauth2_flow,
+    device_registry as dr,
+    entity_registry as er,
+)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 
-from .const import BASE_URL, PLATFORMS, POLL_INTERVAL_SECONDS
+from .const import BASE_URL, DOMAIN, PLATFORMS, POLL_INTERVAL_SECONDS
 from .hybrid_inverter import HybridInverter
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,19 +29,44 @@ _LOGGER = logging.getLogger(__name__)
 class Controller:
     """Controller class orchestrating the data fetching and entitities."""
 
-    def __init__(self, token: str, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Initialise the controller."""
+    def __init__(
+        self,
+        token: str | None,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        session: config_entry_oauth2_flow.OAuth2Session | None = None,
+    ) -> None:
+        """Initialise the controller.
+
+        Either an API key, which never changes, or an OAuth session, whose access token lasts
+        eight hours and is refreshed as needed. Headers are built per request for that reason
+        rather than once here.
+        """
         self.token = token
+        self.session = session
         self.hass = hass
         self.config = entry
         self.poller_task = None
-        self.headers = {
+        self.devices = {}
+        self.platforms_started = 0
+
+    async def auth_headers(self) -> dict:
+        """The headers for a call, with a token that is valid now.
+
+        For a signed-in account this refreshes the access token when it is close to expiring,
+        which is why every call goes through here instead of reusing a header built at startup.
+        """
+        if self.session is not None:
+            await self.session.async_ensure_token_valid()
+            token = self.session.token["access_token"]
+        else:
+            token = self.token
+
+        return {
             "accept": "application/json",
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
-        self.devices = {}
-        self.platforms_started = 0
 
     async def send_reliable_post(self, url_suffix: str, json: dict) -> ClientResponse:
         """Make multiple attempts to post a request, doubling the delays each time."""
@@ -40,7 +74,7 @@ class Controller:
         while loops <= 32:
             response = await async_get_clientsession(self.hass).post(
                 BASE_URL + url_suffix,
-                headers=self.headers,
+                headers=await self.auth_headers(),
                 json=json,
             )
 
@@ -53,24 +87,62 @@ class Controller:
 
         return response  # return the last received response
 
+    def resolve_device(self, data) -> str | None:
+        """Work out which inverter a call is aimed at.
+
+        A device target is the direct route. An entity target is accepted too, because the action
+        definition used to offer entities and automations were written against it - the entity is
+        looked up to find the device it belongs to. Either way what comes back is the cloud id.
+        """
+        hass_device_ids = data.get("device_id")
+        if isinstance(hass_device_ids, str):
+            hass_device_ids = [hass_device_ids]
+
+        if not hass_device_ids:
+            entity_ids = data.get("entity_id")
+            if isinstance(entity_ids, str):
+                entity_ids = [entity_ids]
+
+            if entity_ids:
+                ent_reg = er.async_get(self.hass)
+                hass_device_ids = []
+                for entity_id in entity_ids:
+                    entry = ent_reg.async_get(entity_id)
+                    if entry is not None and entry.device_id is not None:
+                        hass_device_ids.append(entry.device_id)
+
+        if hass_device_ids:
+            dev_reg = dr.async_get(self.hass)
+            for hass_device_id in hass_device_ids:
+                dev: DeviceEntry = dev_reg.async_get(hass_device_id)
+                if dev is None:
+                    continue
+                for identifier in dev.identifiers:
+                    if identifier[0] == DOMAIN and identifier[1] in self.devices:
+                        return identifier[1]
+
+        # Nothing targeted. One inverter is the common case and picking it is a kindness; more
+        # than one and guessing would control the wrong machine, so it is refused instead.
+        inverters = [
+            device.device_id
+            for device in self.devices.values()
+            if device.type == "hybridinverter"
+        ]
+
+        if len(inverters) == 1:
+            return inverters[0]
+
+        if len(inverters) > 1:
+            raise ServiceValidationError(
+                "This site has more than one inverter, so the action needs a target. "
+                "Choose the inverter under Targets, or add a device_id."
+            )
+
+        return None
+
     async def set_work_mode(self, mode, data) -> None:
         """Change the system work mode."""
-        device_id = None
-
-        # If a device is specified, find the cloud device ID from the device identifier
-        if "device_id" in data:
-            hass_device_id = data["device_id"][0]
-            dev_reg = dr.async_get(self.hass)
-            dev: DeviceEntry = dev_reg.async_get(hass_device_id)
-            for identifier in dev.identifiers:
-                device_id = identifier[1]
-
-        # If no device specified, find it in our own registry
-        if device_id is None:
-            for device in self.devices.values():
-                if device.type == "hybridinverter":
-                    device_id = device.device_id
-                    break
+        device_id = self.resolve_device(data)
 
         if device_id is None:
             _LOGGER.warning("Cannot perform set workmode as no device determined")
@@ -84,8 +156,12 @@ class Controller:
             case "set_work_mode_self_consumption":
                 _LOGGER.info("Self consumption")
                 workMode = "selfConsumption"
-                if "percent_to_battery" in data:
-                    params["targetExcessPc"] = data["percent_to_battery"]
+                # services.yaml offered percentage_to_battery while this read
+                # percent_to_battery, so the field never did anything. Both are taken.
+                for field in ("percent_to_battery", "percentage_to_battery"):
+                    if field in data:
+                        params["targetExcessPc"] = data[field]
+                        break
 
             case "set_work_mode_force_charge":
                 workMode = "forceCharge"
@@ -145,9 +221,28 @@ class Controller:
             )
 
     async def initialise(self):
-        """Set up the controller."""
+        """Set up the controller.
+
+        Anything that merely stops us reaching the API - no internet yet at boot, our end having a
+        moment, a timeout - becomes ConfigEntryNotReady. Home Assistant then retries on its own
+        schedule and says "retrying" in the UI, instead of logging a stack trace and leaving the
+        integration dead until somebody notices and restarts.
+
+        A credential that has been revoked, has lapsed through disuse, or was never valid is a
+        different thing: no amount of retrying fixes it, and the person has to do something. That
+        raises ConfigEntryAuthFailed, which asks them to sign in again rather than retrying
+        forever against a key that will never work.
+        """
         _LOGGER.info("Eleven Energy initialising")
-        await self.poll_site()
+
+        try:
+            await self.poll_site()
+        except ConfigEntryAuthFailed:
+            raise
+        except Exception as err:
+            raise ConfigEntryNotReady(
+                f"Could not reach the Eleven Energy API: {err}"
+            ) from err
 
     def start_poller(self):
         """Start the async polling of inverter data."""
@@ -173,7 +268,7 @@ class Controller:
         """Poll all devices for updates."""
         for device in self.devices.values():
             response = await async_get_clientsession(self.hass).get(
-                BASE_URL + "devices/" + device.device_id, headers=self.headers
+                BASE_URL + "devices/" + device.device_id, headers=await self.auth_headers()
             )
 
             if response.status != 200:
@@ -188,14 +283,25 @@ class Controller:
     async def poll_site(self):
         """Poll site for device changes."""
         response = await async_get_clientsession(self.hass).get(
-            BASE_URL + "site", headers=self.headers
+            BASE_URL + "site", headers=await self.auth_headers()
         )
 
-        if response.status != 200:
-            _LOGGER.warning(
-                "Eleven Energy call to site API responded with %s", response.status
+        # A credential problem is permanent until the person acts, so it is told apart from a
+        # service that is briefly unavailable. 401 is a key that is unknown, revoked or has
+        # lapsed; 403 is one that was never granted the scope this needs.
+        if response.status in (401, 403):
+            raise ConfigEntryAuthFailed(
+                "Eleven Energy rejected the credential with status "
+                f"{response.status}. It may have been revoked, or lapsed through disuse."
             )
-            return
+
+        if response.status != 200:
+            # Raised rather than logged and swallowed. Returning here left the integration set up
+            # with no devices and no indication why, which looks identical to a site that has no
+            # inverters.
+            raise RuntimeError(
+                f"The site call responded with status {response.status}"
+            )
 
         js = await response.json()
         for device in js["devices"]:
@@ -204,15 +310,53 @@ class Controller:
             if device_type != "hybridinverter":
                 continue
             if device_id not in self.devices:
+                # Read the machine once before building its entities. The site listing says what
+                # model it is, but how many batteries are actually fitted is only in the reading,
+                # and entities are created once at setup - so asking now is the difference
+                # between a correct set of entities and a guess.
+                state = await self.read_device(device_id)
+
                 inverter = HybridInverter(
                     self.hass,
                     self.config,
                     device_id,
-                    device.get("name", "Eleven Energy"),
-                    device.get("serialNumber", ""),
+                    device,
+                    state,
                 )
                 self.devices[device_id] = inverter
-                _LOGGER.info("Created inverter %s", device_id)
+                _LOGGER.info(
+                    "Created inverter %s (%s, %s phase, %s batter%s)",
+                    device_id,
+                    inverter.model_number,
+                    3 if inverter.model.get("threePhase") else 1,
+                    HybridInverter.battery_count(state or {}),
+                    "y" if HybridInverter.battery_count(state or {}) == 1 else "ies",
+                )
+
+    async def read_device(self, device_id: str) -> dict | None:
+        """Read one device's state, or None where it cannot be read.
+
+        Used during discovery, where a failure must not stop the integration setting up: the
+        inverter is still created from its listing and simply gets the entities the model implies,
+        with the per-battery ones appearing after a restart once it answers.
+        """
+        try:
+            response = await async_get_clientsession(self.hass).get(
+                BASE_URL + "devices/" + device_id, headers=await self.auth_headers()
+            )
+
+            if response.status != 200:
+                _LOGGER.warning(
+                    "Could not read device %s during discovery, status %s",
+                    device_id,
+                    response.status,
+                )
+                return None
+
+            return await response.json()
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning("Could not read device %s during discovery", device_id)
+            return None
 
     def complete_platform_setup(self, platform):
         """Mark a platform as started during init."""

@@ -2,7 +2,9 @@
     "config": {
         "abort": {
             "already_configured": "Device is already configured",
-            "already_setup": "Only one hub allowed, configure existing using a CSV list of IP addresses"
+            "already_setup": "Eleven Energy is already set up.",
+            "reauth_successful": "Eleven Energy is reconnected.",
+            "reconfigure_successful": "Eleven Energy is reconnected."
         },
         "error": {
             "cannot_connect": "Failed to connect",
@@ -11,17 +13,36 @@
         },
         "step": {
             "user": {
-                "data": {
-                    "token": "API Token"
+                "title": "Eleven Energy",
+                "description": "Sign in with your Eleven Energy account, or set up with an API key.",
+                "menu_options": {
+                    "pick_implementation": "Sign in with Eleven Energy",
+                    "token": "Use an API key instead"
                 }
-            }
-        }
-    },
-    "options": {
-        "step": {
-            "init": {
+            },
+            "token": {
+                "title": "API key",
+                "description": "Create a key in the Eleven Energy app under Site & System Settings, Access, Add Access. Signing in is usually easier - go back to choose it.",
                 "data": {
-                    "token": "API Token"
+                    "token": "API key"
+                }
+            },
+            "auth": {
+                "title": "Sign in with Eleven Energy"
+            },
+            "reauth_confirm": {
+                "title": "Reconnect Eleven Energy",
+                "description": "The API key is no longer accepted. It may have been revoked from the Eleven Energy app, or lapsed after 90 days without being used. Create a new one under Site & System Settings, Access, Add Access.",
+                "data": {
+                    "token": "API key"
+                }
+            },
+            "reconfigure": {
+                "title": "Eleven Energy",
+                "description": "Change how this system is connected. Your devices, entities and history are kept - only the way Home Assistant authenticates changes.",
+                "menu_options": {
+                    "pick_implementation": "Sign in with Eleven Energy",
+                    "token": "Use an API key instead"
                 }
             }
         }
@@ -76,7 +97,7 @@
                     "idlebattery": "Idle Battery",
                     "pvexportpriority": "PV Export Priority",
                     "targetsoc": "Target State of Charge"
-                    }
+                }
             },
             "system_status": {
                 "name": "Status",
@@ -86,7 +107,112 @@
                     "ready": "Powered Off",
                     "ongrid": "On Grid",
                     "offgrid": "Off Grid"
-                    }
+                }
+            },
+            "grid_power_l1": {
+                "name": "Grid Power L1"
+            },
+            "grid_voltage_l1": {
+                "name": "Grid Voltage L1"
+            },
+            "grid_current_l1": {
+                "name": "Grid Current L1"
+            },
+            "system_power_l1": {
+                "name": "System Power L1"
+            },
+            "system_voltage_l1": {
+                "name": "System Voltage L1"
+            },
+            "system_current_l1": {
+                "name": "System Current L1"
+            },
+            "grid_power_l2": {
+                "name": "Grid Power L2"
+            },
+            "grid_voltage_l2": {
+                "name": "Grid Voltage L2"
+            },
+            "grid_current_l2": {
+                "name": "Grid Current L2"
+            },
+            "system_power_l2": {
+                "name": "System Power L2"
+            },
+            "system_voltage_l2": {
+                "name": "System Voltage L2"
+            },
+            "system_current_l2": {
+                "name": "System Current L2"
+            },
+            "grid_power_l3": {
+                "name": "Grid Power L3"
+            },
+            "grid_voltage_l3": {
+                "name": "Grid Voltage L3"
+            },
+            "grid_current_l3": {
+                "name": "Grid Current L3"
+            },
+            "system_power_l3": {
+                "name": "System Power L3"
+            },
+            "system_voltage_l3": {
+                "name": "System Voltage L3"
+            },
+            "system_current_l3": {
+                "name": "System Current L3"
+            },
+            "battery_1_raw_state_of_charge": {
+                "name": "Battery 1 Raw State Of Charge"
+            },
+            "battery_1_power": {
+                "name": "Battery 1 Power"
+            },
+            "battery_1_modules": {
+                "name": "Battery 1 Modules"
+            },
+            "battery_2_raw_state_of_charge": {
+                "name": "Battery 2 Raw State Of Charge"
+            },
+            "battery_2_power": {
+                "name": "Battery 2 Power"
+            },
+            "battery_2_modules": {
+                "name": "Battery 2 Modules"
+            },
+            "rated_ac_power": {
+                "name": "Rated AC Power"
+            },
+            "rated_dc_power": {
+                "name": "Rated DC Power"
+            },
+            "mppt_1_power": {
+                "name": "MPPT 1 Power"
+            },
+            "mppt_1_voltage": {
+                "name": "MPPT 1 Voltage"
+            },
+            "mppt_1_current": {
+                "name": "MPPT 1 Current"
+            },
+            "mppt_2_power": {
+                "name": "MPPT 2 Power"
+            },
+            "mppt_2_voltage": {
+                "name": "MPPT 2 Voltage"
+            },
+            "mppt_2_current": {
+                "name": "MPPT 2 Current"
+            },
+            "mppt_3_power": {
+                "name": "MPPT 3 Power"
+            },
+            "mppt_3_voltage": {
+                "name": "MPPT 3 Voltage"
+            },
+            "mppt_3_current": {
+                "name": "MPPT 3 Current"
             }
         },
         "binary_sensor": {
@@ -94,6 +220,123 @@
                 "name": "Online"
             }
         }
-
+    },
+    "services": {
+        "set_work_mode_self_consumption": {
+            "name": "Self Consumption",
+            "description": "Solar covers the house, surplus charges the battery, and once it is full the surplus is exported. The battery makes up any shortfall. This is the normal resting state.",
+            "fields": {
+                "percent_to_battery": {
+                    "name": "Percentage To Battery",
+                    "description": "How much of the surplus solar to store rather than export, as a percentage. Leave unset to store all of it."
+                }
+            }
+        },
+        "set_work_mode_force_charge": {
+            "name": "Grid Charge",
+            "description": "Charge the battery from the grid at a set power until it reaches a target. Once there, the house is supplied from the grid until the mode is changed.",
+            "fields": {
+                "target_power": {
+                    "name": "Target Power",
+                    "description": "Battery charge power in kW. A lower rate may be used if the battery is current limited, such as at a low state of charge."
+                },
+                "target_percent": {
+                    "name": "Target SoC %",
+                    "description": "The state of charge to stop charging at."
+                }
+            }
+        },
+        "set_work_mode_grid_export": {
+            "name": "Grid Export",
+            "description": "Discharge the battery to the grid at a set power until it reaches a target. After that the house is still supplied from the battery, but surplus solar is exported rather than stored.",
+            "fields": {
+                "target_power": {
+                    "name": "Target Power",
+                    "description": "Battery discharge power in kW. This is battery power, not power at the meter: with 1 kW of house load, 5 kW here puts about 4 kW on the grid."
+                },
+                "target_percent": {
+                    "name": "Target SoC %",
+                    "description": "The state of charge to stop discharging at."
+                },
+                "include_excess_solar": {
+                    "name": "Add Surplus Solar",
+                    "description": "Export surplus solar on top of the discharge power rather than storing it."
+                },
+                "overdrive": {
+                    "name": "Overdrive",
+                    "description": "Allow exceeding the usual export ceiling where the connection permits it. Leave off unless you have been told otherwise."
+                }
+            }
+        },
+        "set_work_mode_pv_export": {
+            "name": "Excess PV Export",
+            "description": "Like self consumption, but surplus solar is exported before it is stored. If more solar is available than can be exported, the remainder goes to the battery.",
+            "fields": {}
+        },
+        "set_work_mode_idle_battery": {
+            "name": "Idle Battery",
+            "description": "Hold the battery where it is. Charging and discharging can be allowed separately.",
+            "fields": {
+                "allow_charging": {
+                    "name": "Allow Charging",
+                    "description": "Permit charging the battery from surplus solar."
+                },
+                "allow_discharging": {
+                    "name": "Allow Discharging",
+                    "description": "Permit discharging the battery to supply the house."
+                }
+            }
+        },
+        "set_work_mode_target_soc": {
+            "name": "Target State Of Charge",
+            "description": "Reach a target state of charge within a deadline, working out the rate from the house load as it goes. Once the target is reached the system runs in PV export priority until the mode is changed.",
+            "fields": {
+                "target_soc": {
+                    "name": "Target SoC %",
+                    "description": "The state of charge to aim for."
+                },
+                "target_minutes": {
+                    "name": "Target Minutes",
+                    "description": "How long it has to get there, in minutes."
+                },
+                "max_charge_power": {
+                    "name": "Max Charge Power",
+                    "description": "A ceiling in kW while charging. A lower rate may be used; this is only a maximum."
+                },
+                "max_discharge_power": {
+                    "name": "Max Discharge Power",
+                    "description": "A ceiling in kW while discharging. A lower rate may be used; this is only a maximum."
+                }
+            }
+        },
+        "set_work_mode_reset": {
+            "name": "Reset Work Mode",
+            "description": "Restore the system's own operation. If a schedule was in effect when the mode was changed it resumes, otherwise automatic operation does. Send this when your automation has finished - until you do, the system's own optimisation stays switched off.",
+            "fields": {}
+        }
+    },
+    "device_automation": {
+        "action_type": {
+            "self_consumption": "Self Consumption",
+            "force_charge": "Grid Charge",
+            "grid_export": "Grid Export",
+            "pv_export": "Excess PV Export",
+            "idle_battery": "Idle Battery",
+            "target_soc": "Target State Of Charge",
+            "reset": "Reset Work Mode"
+        },
+        "extra_fields": {
+            "percent_to_battery": "Percentage To Battery",
+            "target_power": "Target Power",
+            "target_percent": "Target SoC %",
+            "target_soc": "Target SoC %",
+            "target_minutes": "Target Minutes",
+            "max_charge_power": "Max Charge Power",
+            "max_discharge_power": "Max Discharge Power",
+            "allow_charging": "Allow Charging",
+            "allow_discharging": "Allow Discharging",
+            "include_excess_solar": "Add Surplus Solar",
+            "overdrive": "Overdrive"
+        }
     }
 }
