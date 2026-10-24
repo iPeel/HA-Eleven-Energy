@@ -7,11 +7,12 @@ from aiohttp import ClientResponse
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 
-from .const import BASE_URL, PLATFORMS, POLL_INTERVAL_SECONDS
+from .const import BASE_URL, DOMAIN, PLATFORMS, POLL_INTERVAL_SECONDS
 from .hybrid_inverter import HybridInverter
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,24 +54,62 @@ class Controller:
 
         return response  # return the last received response
 
+    def resolve_device(self, data) -> str | None:
+        """Work out which inverter a call is aimed at.
+
+        A device target is the direct route. An entity target is accepted too, because the action
+        definition used to offer entities and automations were written against it - the entity is
+        looked up to find the device it belongs to. Either way what comes back is the cloud id.
+        """
+        hass_device_ids = data.get("device_id")
+        if isinstance(hass_device_ids, str):
+            hass_device_ids = [hass_device_ids]
+
+        if not hass_device_ids:
+            entity_ids = data.get("entity_id")
+            if isinstance(entity_ids, str):
+                entity_ids = [entity_ids]
+
+            if entity_ids:
+                ent_reg = er.async_get(self.hass)
+                hass_device_ids = []
+                for entity_id in entity_ids:
+                    entry = ent_reg.async_get(entity_id)
+                    if entry is not None and entry.device_id is not None:
+                        hass_device_ids.append(entry.device_id)
+
+        if hass_device_ids:
+            dev_reg = dr.async_get(self.hass)
+            for hass_device_id in hass_device_ids:
+                dev: DeviceEntry = dev_reg.async_get(hass_device_id)
+                if dev is None:
+                    continue
+                for identifier in dev.identifiers:
+                    if identifier[0] == DOMAIN and identifier[1] in self.devices:
+                        return identifier[1]
+
+        # Nothing targeted. One inverter is the common case and picking it is a kindness; more
+        # than one and guessing would control the wrong machine, so it is refused instead.
+        inverters = [
+            device.device_id
+            for device in self.devices.values()
+            if device.type == "hybridinverter"
+        ]
+
+        if len(inverters) == 1:
+            return inverters[0]
+
+        if len(inverters) > 1:
+            raise ServiceValidationError(
+                "This site has more than one inverter, so the action needs a target. "
+                "Choose the inverter under Targets, or add a device_id."
+            )
+
+        return None
+
     async def set_work_mode(self, mode, data) -> None:
         """Change the system work mode."""
-        device_id = None
-
-        # If a device is specified, find the cloud device ID from the device identifier
-        if "device_id" in data:
-            hass_device_id = data["device_id"][0]
-            dev_reg = dr.async_get(self.hass)
-            dev: DeviceEntry = dev_reg.async_get(hass_device_id)
-            for identifier in dev.identifiers:
-                device_id = identifier[1]
-
-        # If no device specified, find it in our own registry
-        if device_id is None:
-            for device in self.devices.values():
-                if device.type == "hybridinverter":
-                    device_id = device.device_id
-                    break
+        device_id = self.resolve_device(data)
 
         if device_id is None:
             _LOGGER.warning("Cannot perform set workmode as no device determined")
@@ -84,8 +123,12 @@ class Controller:
             case "set_work_mode_self_consumption":
                 _LOGGER.info("Self consumption")
                 workMode = "selfConsumption"
-                if "percent_to_battery" in data:
-                    params["targetExcessPc"] = data["percent_to_battery"]
+                # services.yaml offered percentage_to_battery while this read
+                # percent_to_battery, so the field never did anything. Both are taken.
+                for field in ("percent_to_battery", "percentage_to_battery"):
+                    if field in data:
+                        params["targetExcessPc"] = data[field]
+                        break
 
             case "set_work_mode_force_charge":
                 workMode = "forceCharge"
@@ -204,15 +247,53 @@ class Controller:
             if device_type != "hybridinverter":
                 continue
             if device_id not in self.devices:
+                # Read the machine once before building its entities. The site listing says what
+                # model it is, but how many batteries are actually fitted is only in the reading,
+                # and entities are created once at setup - so asking now is the difference
+                # between a correct set of entities and a guess.
+                state = await self.read_device(device_id)
+
                 inverter = HybridInverter(
                     self.hass,
                     self.config,
                     device_id,
-                    device.get("name", "Eleven Energy"),
-                    device.get("serialNumber", ""),
+                    device,
+                    state,
                 )
                 self.devices[device_id] = inverter
-                _LOGGER.info("Created inverter %s", device_id)
+                _LOGGER.info(
+                    "Created inverter %s (%s, %s phase, %s batter%s)",
+                    device_id,
+                    inverter.model_number,
+                    3 if inverter.model.get("threePhase") else 1,
+                    HybridInverter.battery_count(state or {}),
+                    "y" if HybridInverter.battery_count(state or {}) == 1 else "ies",
+                )
+
+    async def read_device(self, device_id: str) -> dict | None:
+        """Read one device's state, or None where it cannot be read.
+
+        Used during discovery, where a failure must not stop the integration setting up: the
+        inverter is still created from its listing and simply gets the entities the model implies,
+        with the per-battery ones appearing after a restart once it answers.
+        """
+        try:
+            response = await async_get_clientsession(self.hass).get(
+                BASE_URL + "devices/" + device_id, headers=self.headers
+            )
+
+            if response.status != 200:
+                _LOGGER.warning(
+                    "Could not read device %s during discovery, status %s",
+                    device_id,
+                    response.status,
+                )
+                return None
+
+            return await response.json()
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning("Could not read device %s during discovery", device_id)
+            return None
 
     def complete_platform_setup(self, platform):
         """Mark a platform as started during init."""

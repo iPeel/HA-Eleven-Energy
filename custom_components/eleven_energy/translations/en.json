@@ -76,7 +76,7 @@
                     "idlebattery": "Idle Battery",
                     "pvexportpriority": "PV Export Priority",
                     "targetsoc": "Target State of Charge"
-                    }
+                }
             },
             "system_status": {
                 "name": "Status",
@@ -86,7 +86,85 @@
                     "ready": "Powered Off",
                     "ongrid": "On Grid",
                     "offgrid": "Off Grid"
-                    }
+                }
+            },
+            "grid_power_l1": {
+                "name": "Grid Power L1"
+            },
+            "grid_voltage_l1": {
+                "name": "Grid Voltage L1"
+            },
+            "grid_current_l1": {
+                "name": "Grid Current L1"
+            },
+            "system_power_l1": {
+                "name": "System Power L1"
+            },
+            "system_voltage_l1": {
+                "name": "System Voltage L1"
+            },
+            "system_current_l1": {
+                "name": "System Current L1"
+            },
+            "grid_power_l2": {
+                "name": "Grid Power L2"
+            },
+            "grid_voltage_l2": {
+                "name": "Grid Voltage L2"
+            },
+            "grid_current_l2": {
+                "name": "Grid Current L2"
+            },
+            "system_power_l2": {
+                "name": "System Power L2"
+            },
+            "system_voltage_l2": {
+                "name": "System Voltage L2"
+            },
+            "system_current_l2": {
+                "name": "System Current L2"
+            },
+            "grid_power_l3": {
+                "name": "Grid Power L3"
+            },
+            "grid_voltage_l3": {
+                "name": "Grid Voltage L3"
+            },
+            "grid_current_l3": {
+                "name": "Grid Current L3"
+            },
+            "system_power_l3": {
+                "name": "System Power L3"
+            },
+            "system_voltage_l3": {
+                "name": "System Voltage L3"
+            },
+            "system_current_l3": {
+                "name": "System Current L3"
+            },
+            "battery_1_raw_state_of_charge": {
+                "name": "Battery 1 Raw State Of Charge"
+            },
+            "battery_1_power": {
+                "name": "Battery 1 Power"
+            },
+            "battery_1_modules": {
+                "name": "Battery 1 Modules"
+            },
+            "battery_2_raw_state_of_charge": {
+                "name": "Battery 2 Raw State Of Charge"
+            },
+            "battery_2_power": {
+                "name": "Battery 2 Power"
+            },
+            "battery_2_modules": {
+                "name": "Battery 2 Modules"
+            },
+            "rated_ac_power": {
+                "name": "Rated AC Power"
+            },
+            "rated_dc_power": {
+                "name": "Rated DC Power"
             }
         },
         "binary_sensor": {
@@ -94,6 +172,99 @@
                 "name": "Online"
             }
         }
-
+    },
+    "services": {
+        "set_work_mode_self_consumption": {
+            "name": "Self consumption",
+            "description": "Solar covers the house, surplus charges the battery, and once it is full the surplus is exported. The battery makes up any shortfall. This is the normal resting state.",
+            "fields": {
+                "percent_to_battery": {
+                    "name": "Surplus to battery",
+                    "description": "How much of the surplus solar to store rather than export, as a percentage. Leave unset to store all of it."
+                }
+            }
+        },
+        "set_work_mode_force_charge": {
+            "name": "Force charge",
+            "description": "Charge the battery from the grid at a set power until it reaches a target. Once there, the house is supplied from the grid until the mode is changed.",
+            "fields": {
+                "target_power": {
+                    "name": "Charge power",
+                    "description": "Battery charge power in kW. A lower rate may be used if the battery is current limited, such as at a low state of charge."
+                },
+                "target_percent": {
+                    "name": "Target state of charge",
+                    "description": "The state of charge to stop charging at."
+                }
+            }
+        },
+        "set_work_mode_grid_export": {
+            "name": "Grid export",
+            "description": "Discharge the battery to the grid at a set power until it reaches a target. After that the house is still supplied from the battery, but surplus solar is exported rather than stored.",
+            "fields": {
+                "target_power": {
+                    "name": "Discharge power",
+                    "description": "Battery discharge power in kW. This is battery power, not power at the meter: with 1 kW of house load, 5 kW here puts about 4 kW on the grid."
+                },
+                "target_percent": {
+                    "name": "Target state of charge",
+                    "description": "The state of charge to stop discharging at."
+                },
+                "include_excess_solar": {
+                    "name": "Add surplus solar",
+                    "description": "Export surplus solar on top of the discharge power rather than storing it."
+                },
+                "overdrive": {
+                    "name": "Overdrive",
+                    "description": "Allow exceeding the usual export ceiling where the connection permits it. Leave off unless you have been told otherwise."
+                }
+            }
+        },
+        "set_work_mode_pv_export": {
+            "name": "PV export priority",
+            "description": "Like self consumption, but surplus solar is exported before it is stored. If more solar is available than can be exported, the remainder goes to the battery.",
+            "fields": {}
+        },
+        "set_work_mode_idle_battery": {
+            "name": "Idle battery",
+            "description": "Hold the battery where it is. Charging and discharging can be allowed separately.",
+            "fields": {
+                "allow_charging": {
+                    "name": "Allow charging",
+                    "description": "Permit charging the battery from surplus solar."
+                },
+                "allow_discharging": {
+                    "name": "Allow discharging",
+                    "description": "Permit discharging the battery to supply the house."
+                }
+            }
+        },
+        "set_work_mode_target_soc": {
+            "name": "Reach a state of charge",
+            "description": "Reach a target state of charge within a deadline, working out the rate from the house load as it goes. Once the target is reached the system runs in PV export priority until the mode is changed.",
+            "fields": {
+                "target_soc": {
+                    "name": "Target state of charge",
+                    "description": "The state of charge to aim for."
+                },
+                "target_minutes": {
+                    "name": "Within",
+                    "description": "How long it has to get there, in minutes."
+                },
+                "max_charge_power": {
+                    "name": "Maximum charge power",
+                    "description": "A ceiling in kW while charging. A lower rate may be used; this is only a maximum."
+                },
+                "max_discharge_power": {
+                    "name": "Maximum discharge power",
+                    "description": "A ceiling in kW while discharging. A lower rate may be used; this is only a maximum."
+                }
+            }
+        },
+        "set_work_mode_reset": {
+            "name": "Hand control back",
+            "description": "Restore the system's own operation. If a schedule was in effect when the mode was changed it resumes, otherwise automatic operation does. Send this when your automation has finished - until you do, the system's own optimisation stays switched off.",
+            "fields": {}
+        }
     }
 }

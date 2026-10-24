@@ -15,6 +15,7 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
+    UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
     UnitOfPower,
@@ -36,19 +37,38 @@ class HybridInverter:
         hass: HomeAssistant,
         entry: ConfigEntry,
         device_id: str,
-        device_name: str,
-        device_serial_number: str,
+        summary: dict,
+        state: dict | None = None,
     ) -> None:
-        """Create an inverter."""
+        """Create an inverter from its site listing and, where we have one, its first reading.
+
+        The listing says what the machine is - three phase, dual battery, its ratings - and the
+        reading says how this particular one is put together, which is a different question: a
+        dual battery model with one battery fitted is ordinary. Entities are built from both, so
+        a single phase system is never given three phases' worth of entities that read zero.
+        """
+        state = state or {}
+        model = summary.get("model") or state.get("model") or {}
+        configuration = state.get("configuration") or {}
+
+        self.model = model
+        self.configuration = configuration
+
+        # The product name as the machine reports it. The device's own "name" field is a
+        # provisioning default that was never corrected per model - every machine carries the
+        # same one - so it is a fallback for a portal too old to send the model block, nothing
+        # more.
+        model_name = model.get("name") or summary.get("name") or "Eleven Energy"
+
         self.type = "hybridinverter"
         self.device_id = device_id
-        self.model_number = device_name
+        self.model_number = model_name
         self.device_info = DeviceInfo(
             identifiers={(DOMAIN, self.device_id)},
-            name="Eleven Energy " + device_name,
+            name="Eleven Energy " + model_name,
             manufacturer="Eleven Energy",
-            model=self.model_number,
-            serial_number=device_serial_number,
+            model=model_name,
+            serial_number=summary.get("serialNumber", ""),
         )
         self.hass = hass
         self.entry = entry
@@ -220,6 +240,136 @@ class HybridInverter:
             )
         }
 
+        # Only what this machine actually has. Everything above exists on every inverter; what
+        # follows depends on the hardware, and creating it regardless would leave single phase
+        # systems with three phases of entities reading zero.
+        if model.get("threePhase"):
+            self.add_phase_entities(hass, "grid", "mdi:transmission-tower")
+            self.add_phase_entities(hass, "system", "mdi:flash")
+
+        for index in range(1, self.battery_count(state) + 1):
+            self.add_battery_entities(hass, index)
+
+        self.add_rating_entities(hass, model)
+
+    @staticmethod
+    def battery_count(state: dict) -> int:
+        """How many battery arrays this system reports.
+
+        From the reading rather than the model: the model says how many arrays are supported, and
+        a system with one fitted is ordinary. Two batteries behind a single shared BMS are
+        reported by the machine as one, which is the truth about what can be seen.
+        """
+        batteries = (state.get("battery") or {}).get("batteries")
+        return len(batteries) if isinstance(batteries, list) else 0
+
+    def add_phase_entities(self, hass: HomeAssistant, group: str, icon: str) -> None:
+        """Add per-phase readings for a group, on three phase machines only."""
+        for phase in ("L1", "L2", "L3"):
+            lower = phase.lower()
+
+            self.sensor_entities[group + ".phases." + phase + ".power"] = InverterSensorEntity(
+                hass,
+                device_info=self.device_info,
+                device_id=self.device_id,
+                entity_type=group + "_power_" + lower,
+                unit_of_measurement=UnitOfPower.KILO_WATT,
+                decimals=2,
+                icon=icon,
+            )
+
+            self.sensor_entities[group + ".phases." + phase + ".voltage"] = InverterSensorEntity(
+                hass,
+                device_info=self.device_info,
+                device_id=self.device_id,
+                entity_type=group + "_voltage_" + lower,
+                unit_of_measurement=UnitOfElectricPotential.VOLT,
+                device_class=SensorDeviceClass.VOLTAGE,
+                decimals=1,
+                icon="mdi:sine-wave",
+                category=EntityCategory.DIAGNOSTIC,
+            )
+
+            self.sensor_entities[group + ".phases." + phase + ".current"] = InverterSensorEntity(
+                hass,
+                device_info=self.device_info,
+                device_id=self.device_id,
+                entity_type=group + "_current_" + lower,
+                unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+                device_class=SensorDeviceClass.CURRENT,
+                decimals=2,
+                icon="mdi:current-ac",
+                category=EntityCategory.DIAGNOSTIC,
+            )
+
+    def add_battery_entities(self, hass: HomeAssistant, index: int) -> None:
+        """Add one battery array's own readings."""
+        prefix = "battery.batteries." + str(index) + "."
+        name = "battery_" + str(index) + "_"
+
+        # Raw from the BMS, before the top and bottom buffer allowances. It will not agree with
+        # the pack's state of charge above, which is the usable figure, so it is named to keep
+        # the two apart rather than looking like a rounding error.
+        self.sensor_entities[prefix + "stateOfCharge"] = InverterSensorEntity(
+            hass,
+            device_info=self.device_info,
+            device_id=self.device_id,
+            entity_type=name + "raw_state_of_charge",
+            unit_of_measurement=PERCENTAGE,
+            decimals=0,
+            icon="mdi:battery-heart-variant",
+            device_class=SensorDeviceClass.BATTERY,
+            category=EntityCategory.DIAGNOSTIC,
+        )
+
+        self.sensor_entities[prefix + "power"] = InverterSensorEntity(
+            hass,
+            device_info=self.device_info,
+            device_id=self.device_id,
+            entity_type=name + "power",
+            unit_of_measurement=UnitOfPower.KILO_WATT,
+            decimals=2,
+            icon="mdi:battery-charging",
+        )
+
+        self.sensor_entities[prefix + "moduleCount"] = InverterSensorEntity(
+            hass,
+            device_info=self.device_info,
+            device_id=self.device_id,
+            entity_type=name + "modules",
+            unit_of_measurement=None,
+            device_class=None,
+            state_class=None,
+            decimals=0,
+            icon="mdi:battery-sync",
+            category=EntityCategory.DIAGNOSTIC,
+        )
+
+    def add_rating_entities(self, hass: HomeAssistant, model: dict) -> None:
+        """Add the machine's nameplate ratings, where it reports them.
+
+        Static, but worth having: an automation capping a charge rate wants to know what the
+        machine can actually do rather than carrying a number somebody typed once.
+        """
+        for field, entity_type, icon in (
+            ("maxAcPower", "rated_ac_power", "mdi:transmission-tower"),
+            ("maxDcPower", "rated_dc_power", "mdi:battery-charging-high"),
+        ):
+            if field not in model:
+                continue
+
+            self.sensor_entities["model." + field] = InverterSensorEntity(
+                hass,
+                device_info=self.device_info,
+                device_id=self.device_id,
+                entity_type=entity_type,
+                unit_of_measurement=UnitOfPower.KILO_WATT,
+                decimals=1,
+                icon=icon,
+                state_class=None,
+                category=EntityCategory.DIAGNOSTIC,
+            )
+
     def processHive(self, json, hive: str):
         """Look for useful content within a sub object in the payload and updates sensors from it."""
         if hive not in json:
@@ -237,6 +387,46 @@ class HybridInverter:
             if sensor_key in self.sensor_entities:
                 self.sensor_entities[sensor_key].set_native_value(val)
 
+    def process_phases(self, json, group: str):
+        """Update per-phase readings for a group.
+
+        A no-op on a single phase machine, where the entities were never created - and the
+        payload carries no phases either, because the API only reports them where there are
+        really three.
+        """
+        phases = (json.get(group) or {}).get("phases")
+        if not isinstance(phases, dict):
+            return
+
+        for phase, readings in phases.items():
+            if not isinstance(readings, dict):
+                continue
+            for field, value in readings.items():
+                key = group + ".phases." + phase + "." + field
+                if key in self.sensor_entities:
+                    self.sensor_entities[key].set_native_value(value)
+
+    def process_batteries(self, json):
+        """Update each battery array's own readings.
+
+        Keyed on the array's own index rather than its position in the list, so a system that
+        stops reporting one array does not quietly shift the other one's readings onto it.
+        """
+        batteries = (json.get("battery") or {}).get("batteries")
+        if not isinstance(batteries, list):
+            return
+
+        for battery in batteries:
+            if not isinstance(battery, dict):
+                continue
+            index = battery.get("index")
+            if index is None:
+                continue
+            for field, value in battery.items():
+                key = "battery.batteries." + str(index) + "." + field
+                if key in self.sensor_entities:
+                    self.sensor_entities[key].set_native_value(value)
+
     async def update(self, json):
         """Update sensor values from state."""
         # process useable hives from the json payload
@@ -246,6 +436,11 @@ class HybridInverter:
         self.processHive(json, "grid")
         self.processHive(json, "system")
         self.processHive(json, "operatingMode")
+
+        self.process_phases(json, "grid")
+        self.process_phases(json, "system")
+        self.process_batteries(json)
+        self.processHive(json, "model")
 
         self.sensor_entities["status"].set_native_value(json["status"].lower())
 

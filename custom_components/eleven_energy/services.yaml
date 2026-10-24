@@ -1,85 +1,167 @@
+# Structure only. Names, descriptions and field labels live in translations/en.json, which is
+# where Home Assistant has read them from since 2024.8 - keeping them here as well would be two
+# copies to drift apart.
+#
+# Targets are devices, not entities. These actions change what an inverter is doing, the code
+# resolves a device to its cloud id, and an entity target left it with nothing to resolve - so it
+# fell back to the first inverter it could find, which is the wrong machine on a site with two.
+# An entity target is still accepted and resolved to the device it belongs to, so automations
+# written against the old definition keep working.
+
 set_work_mode_self_consumption:
-  name: Change work mode to Self Consumption
-  description: Requests a change of work mode to Self Consumption, excess solar is sent to the battery and then on to the grid if the battery is full.
   target:
+    device:
+      integration: eleven_energy
     entity:
-      domain: sensor
       integration: eleven_energy
   fields:
-    percentage_to_battery:
-      name: Percentage to battery
-      description: The percentage of average excess solar to divert to the battery versus the grid. Specify an amount less than 100 to send some energy to the grid even when the battery isn't full.
-      example: '100'
+    percent_to_battery:
       required: false
+      example: 100
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          unit_of_measurement: "%"
+          mode: slider
 
 set_work_mode_force_charge:
-  name: Change work mode to Force Charge
-  description: Requests a change of work mode to Force Charge to charge the battery from the grid.
   target:
+    device:
+      integration: eleven_energy
     entity:
-      domain: sensor
       integration: eleven_energy
   fields:
     target_power:
-      name: Charge power
-      description: The amount of power to charge the battery.
-      example: '3.5'
       required: true
+      example: 3.5
+      selector:
+        number:
+          min: 0
+          max: 20
+          step: 0.1
+          unit_of_measurement: kW
+          mode: box
     target_percent:
-      name: Target Percent
-      description: The percentage State of Charge to charge the battery to, when the target is reached charging will stop but the battery will not be used.
       required: true
+      example: 100
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          unit_of_measurement: "%"
+          mode: slider
 
 set_work_mode_grid_export:
-  name: Change work mode to Grid Export
-  description: Requests a change of work mode to Grid Export to discharge the battery out to the grid.
   target:
+    device:
+      integration: eleven_energy
     entity:
-      domain: sensor
       integration: eleven_energy
   fields:
     target_power:
-      name: Discharge power
-      description: The amount of power to export toi the grid.
-      example: '3.5'
       required: true
+      example: 3.5
+      selector:
+        number:
+          min: 0
+          max: 20
+          step: 0.1
+          unit_of_measurement: kW
+          mode: box
     target_percent:
-      name: Target Percent
-      description: The percentage State of Charge to discharge until, once the state of charge is reached, only excess solar will be exported.
       required: true
+      example: 20
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          unit_of_measurement: "%"
+          mode: slider
+    include_excess_solar:
+      required: false
+      selector:
+        boolean:
+    overdrive:
+      required: false
+      selector:
+        boolean:
 
 set_work_mode_pv_export:
-  name: Change work mode to PV Export Priority
-  description: Requests a change of work mode to PV Export Priority to prefer to export excess solar to the grid rather than charge the battery.
   target:
+    device:
+      integration: eleven_energy
     entity:
-      domain: sensor
       integration: eleven_energy
 
 set_work_mode_idle_battery:
-  name: Change work mode to Idle Battery
-  description: Requests a change of work mode to Idle Battery to disable charging or discharging of the battery.
   target:
+    device:
+      integration: eleven_energy
     entity:
-      domain: sensor
       integration: eleven_energy
   fields:
     allow_charging:
-      name: Allow Charging
-      description: Allow charging of the battery ( i.e. only disallow discharge )
       required: false
+      selector:
+        boolean:
     allow_discharging:
-      name: Allow Discharging
-      description: Allow discharging of the battery ( i.e. only disallow charging )
       required: false
+      selector:
+        boolean:
+
+set_work_mode_target_soc:
+  target:
+    device:
+      integration: eleven_energy
+    entity:
+      integration: eleven_energy
+  fields:
+    target_soc:
+      required: true
+      example: 50
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          unit_of_measurement: "%"
+          mode: slider
+    target_minutes:
+      required: true
+      example: 300
+      selector:
+        number:
+          min: 5
+          max: 1440
+          step: 5
+          unit_of_measurement: min
+          mode: box
+    max_charge_power:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 20
+          step: 0.1
+          unit_of_measurement: kW
+          mode: box
+    max_discharge_power:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 20
+          step: 0.1
+          unit_of_measurement: kW
+          mode: box
 
 set_work_mode_reset:
-  name: Reset work mode
-  description: Resets the work mode based on system configuration or schedules
   target:
-    entity:
-      domain: sensor
+    device:
       integration: eleven_energy
-
-
-
+    entity:
+      integration: eleven_energy
