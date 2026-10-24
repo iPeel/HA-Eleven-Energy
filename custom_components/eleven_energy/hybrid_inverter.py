@@ -244,8 +244,14 @@ class HybridInverter:
         # follows depends on the hardware, and creating it regardless would leave single phase
         # systems with three phases of entities reading zero.
         if model.get("threePhase"):
-            self.add_phase_entities(hass, "grid", "mdi:transmission-tower")
-            self.add_phase_entities(hass, "system", "mdi:flash")
+            # Each group's phases sit wherever that group's own reading sits. Grid power is a
+            # headline figure, so its phases are too; system power is diagnostic, so splitting it
+            # into three non-diagnostic entities would have scattered one measurement across two
+            # sections of the device page.
+            self.add_phase_entities(hass, "grid", "mdi:transmission-tower", None)
+            self.add_phase_entities(
+                hass, "system", "mdi:flash", EntityCategory.DIAGNOSTIC
+            )
 
         for index in range(1, self.battery_count(state) + 1):
             self.add_battery_entities(hass, index)
@@ -263,8 +269,16 @@ class HybridInverter:
         batteries = (state.get("battery") or {}).get("batteries")
         return len(batteries) if isinstance(batteries, list) else 0
 
-    def add_phase_entities(self, hass: HomeAssistant, group: str, icon: str) -> None:
-        """Add per-phase readings for a group, on three phase machines only."""
+    def add_phase_entities(
+        self, hass: HomeAssistant, group: str, icon: str, category
+    ) -> None:
+        """Add per-phase readings for a group, on three phase machines only.
+
+        category is the one the group's headline reading uses, so the per-phase figures keep it
+        company rather than appearing in a different part of the page from the total they add up
+        to. Voltage and current are diagnostic either way - they describe the supply rather than
+        what the system is doing with it.
+        """
         for phase in ("L1", "L2", "L3"):
             lower = phase.lower()
 
@@ -276,6 +290,7 @@ class HybridInverter:
                 unit_of_measurement=UnitOfPower.KILO_WATT,
                 decimals=2,
                 icon=icon,
+                category=category,
             )
 
             self.sensor_entities[group + ".phases." + phase + ".voltage"] = InverterSensorEntity(
