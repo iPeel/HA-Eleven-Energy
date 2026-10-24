@@ -10,7 +10,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, OptionsFlow
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
@@ -95,11 +95,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
         )
 
-    def async_get_options_flow(
-        config_entry: ConfigEntry,  # noqa: N805
-    ) -> OptionsFlow:
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Get the options flow for this handler."""
-        return OptionsFlowHandler(config_entry)
+        return OptionsFlowHandler()
 
 
 class CannotConnect(HomeAssistantError):
@@ -111,11 +111,13 @@ class InvalidAuth(HomeAssistantError):
 
 
 class OptionsFlowHandler(OptionsFlow):
-    """Eleven Energy Options Flow handler."""
+    """Eleven Energy Options Flow handler.
 
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
+    No __init__ and no config_entry assignment. Home Assistant sets config_entry
+    on the options flow itself, and since it became a read-only property an
+    integration assigning it raises - which is the 500 the configuration dialog
+    was showing (issue #3).
+    """
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

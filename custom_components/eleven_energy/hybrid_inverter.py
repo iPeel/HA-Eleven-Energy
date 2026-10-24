@@ -328,8 +328,11 @@ class InverterBinarySensorEntity(BinarySensorEntity):
         self.currentValue = None
         self._attr_device_info = device_info
         self.hass = hass
+        # binary_sensor, not sensor. This is added through the binary_sensor platform, so minting
+        # an id in the sensor domain gave Home Assistant an entity whose id contradicted its own
+        # platform - which it warns about now and refuses from 2027.5 (issue #2).
         entity_id = generate_entity_id(
-            "sensor.{}",
+            "binary_sensor.{}",
             device_id + "_" + entity_type,
             [],
             hass,
