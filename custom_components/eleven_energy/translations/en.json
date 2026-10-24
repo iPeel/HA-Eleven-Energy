@@ -186,6 +186,33 @@
             },
             "rated_dc_power": {
                 "name": "Rated DC Power"
+            },
+            "mppt_1_power": {
+                "name": "MPPT 1 Power"
+            },
+            "mppt_1_voltage": {
+                "name": "MPPT 1 Voltage"
+            },
+            "mppt_1_current": {
+                "name": "MPPT 1 Current"
+            },
+            "mppt_2_power": {
+                "name": "MPPT 2 Power"
+            },
+            "mppt_2_voltage": {
+                "name": "MPPT 2 Voltage"
+            },
+            "mppt_2_current": {
+                "name": "MPPT 2 Current"
+            },
+            "mppt_3_power": {
+                "name": "MPPT 3 Power"
+            },
+            "mppt_3_voltage": {
+                "name": "MPPT 3 Voltage"
+            },
+            "mppt_3_current": {
+                "name": "MPPT 3 Current"
             }
         },
         "binary_sensor": {

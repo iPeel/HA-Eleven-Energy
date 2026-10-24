@@ -253,6 +253,9 @@ class HybridInverter:
                 hass, "system", "mdi:flash", EntityCategory.DIAGNOSTIC
             )
 
+        for index in range(1, self.mppt_count(model) + 1):
+            self.add_mppt_entities(hass, index)
+
         for index in range(1, self.battery_count(state) + 1):
             self.add_battery_entities(hass, index)
 
@@ -316,6 +319,63 @@ class HybridInverter:
                 icon="mdi:current-ac",
                 category=EntityCategory.DIAGNOSTIC,
             )
+
+    @staticmethod
+    def mppt_count(model: dict) -> int:
+        """How many solar trackers this machine has.
+
+        A property of the model rather than of the reading: every machine reports three sets of
+        registers whether or not it has three trackers. Dual battery models have three inputs,
+        the rest have two, and an unrecognised model gets none rather than a guess.
+        """
+        if not model:
+            return 0
+        return 3 if model.get("dualBattery") else 2
+
+    def add_mppt_entities(self, hass: HomeAssistant, index: int) -> None:
+        """Add one solar tracker's own readings.
+
+        Diagnostic, all three: the combined pv figures are what somebody puts on a dashboard,
+        and these are for working out why one string is behaving differently from another -
+        shading, a dead panel, a roof facing the wrong way.
+        """
+        prefix = "pv.mppts." + str(index) + "."
+        name = "mppt_" + str(index) + "_"
+
+        self.sensor_entities[prefix + "power"] = InverterSensorEntity(
+            hass,
+            device_info=self.device_info,
+            device_id=self.device_id,
+            entity_type=name + "power",
+            unit_of_measurement=UnitOfPower.KILO_WATT,
+            decimals=3,
+            icon="mdi:solar-power-variant",
+            category=EntityCategory.DIAGNOSTIC,
+        )
+
+        self.sensor_entities[prefix + "voltage"] = InverterSensorEntity(
+            hass,
+            device_info=self.device_info,
+            device_id=self.device_id,
+            entity_type=name + "voltage",
+            unit_of_measurement=UnitOfElectricPotential.VOLT,
+            device_class=SensorDeviceClass.VOLTAGE,
+            decimals=1,
+            icon="mdi:flash-triangle-outline",
+            category=EntityCategory.DIAGNOSTIC,
+        )
+
+        self.sensor_entities[prefix + "current"] = InverterSensorEntity(
+            hass,
+            device_info=self.device_info,
+            device_id=self.device_id,
+            entity_type=name + "current",
+            unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+            device_class=SensorDeviceClass.CURRENT,
+            decimals=2,
+            icon="mdi:current-dc",
+            category=EntityCategory.DIAGNOSTIC,
+        )
 
     def add_battery_entities(self, hass: HomeAssistant, index: int) -> None:
         """Add one battery array's own readings."""
@@ -421,6 +481,27 @@ class HybridInverter:
                 if key in self.sensor_entities:
                     self.sensor_entities[key].set_native_value(value)
 
+    def process_mppts(self, json):
+        """Update each solar tracker's readings.
+
+        Keyed on the tracker's own index rather than its position in the list, so a payload that
+        ever omits one does not shift another's readings onto it.
+        """
+        mppts = (json.get("pv") or {}).get("mppts")
+        if not isinstance(mppts, list):
+            return
+
+        for mppt in mppts:
+            if not isinstance(mppt, dict):
+                continue
+            index = mppt.get("index")
+            if index is None:
+                continue
+            for field, value in mppt.items():
+                key = "pv.mppts." + str(index) + "." + field
+                if key in self.sensor_entities:
+                    self.sensor_entities[key].set_native_value(value)
+
     def process_batteries(self, json):
         """Update each battery array's own readings.
 
@@ -454,6 +535,7 @@ class HybridInverter:
 
         self.process_phases(json, "grid")
         self.process_phases(json, "system")
+        self.process_mppts(json)
         self.process_batteries(json)
         self.processHive(json, "model")
 
