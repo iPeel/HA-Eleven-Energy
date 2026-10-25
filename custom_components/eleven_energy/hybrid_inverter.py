@@ -405,6 +405,7 @@ class HybridInverter:
             unit_of_measurement=UnitOfPower.KILO_WATT,
             decimals=2,
             icon="mdi:battery-charging",
+            category=EntityCategory.DIAGNOSTIC,
         )
 
         self.sensor_entities[prefix + "moduleCount"] = InverterSensorEntity(

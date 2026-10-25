@@ -45,7 +45,7 @@ Grid Power L*n*, Grid Voltage L*n*, Grid Current L*n*, System Power L*n*, System
 
 The existing whole system figures are unchanged on three phase machines - System Power and Grid Power remain the total across all three phases, so anything you have already built keeps reading what it always did.
 
-On a dual battery system, per battery:
+On a dual battery system, per battery, as diagnostics:
 
 Battery *n* Power, Battery *n* Modules, Battery *n* Raw State Of Charge.
 
