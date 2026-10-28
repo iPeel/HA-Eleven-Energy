@@ -10,6 +10,8 @@ actions keeps working untouched.
 
 from __future__ import annotations
 
+import logging
+
 import voluptuous as vol
 
 from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_TYPE
@@ -22,6 +24,8 @@ from homeassistant.helpers import (
 from homeassistant.helpers.typing import ConfigType, TemplateVarsType
 
 from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 # A list rather than a set: this is the order they are offered in, and a set would shuffle them
 # between restarts. Ordered as somebody would reach for them - the everyday modes first, handing
@@ -78,12 +82,22 @@ async def async_get_actions(
     """List the actions an Eleven Energy inverter offers."""
 
     registry = er.async_get(hass)
+    entries = er.async_entries_for_device(registry, device_id)
+
+    # Debug rather than silence: when these actions do not appear in the user interface, the first
+    # thing worth knowing is whether Home Assistant asked us for them at all. No line here means it
+    # never called, and nothing we return would have changed that.
+    _LOGGER.debug(
+        "Device actions asked for %s: %d registry entries, platforms %s",
+        device_id,
+        len(entries),
+        sorted({entry.platform for entry in entries}),
+    )
 
     # Ours is an integration domain rather than an entity domain, so the test is which integration
     # put the entity there - not what kind of entity it is.
-    if not any(
-        entry.platform == DOMAIN for entry in er.async_entries_for_device(registry, device_id)
-    ):
+    if not any(entry.platform == DOMAIN for entry in entries):
+        _LOGGER.debug("No %s entity on device %s, so offering no actions", DOMAIN, device_id)
         return []
 
     return [
