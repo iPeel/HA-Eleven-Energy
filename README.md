@@ -53,21 +53,23 @@ The two batteries are reported separately because each has its own BMS and they 
 
 ## Controlling your inverter
 
-There are two ways to change the work mode, and both do the same thing.
-
 Setting any work mode switches off the Eleven Energy optimiser for that site, and it stays switched off until you send `Reset Work Mode`. Automations that take control should hand it back when they are done.
 
-### Device actions ( recommended )
+### Actions
 
-In an automation, choose `Add action`, then pick your inverter under `Eleven Energy`, and the work modes appear in the list with their parameters as proper form fields - sliders, kW boxes and switches - with the device already chosen for you.
+In an automation, choose `Add action` and find the work mode under `Eleven Energy` - by searching for it, or under `By type`. Each one takes its parameters as proper form fields: sliders, kW boxes and switches.
 
 ![image](https://github.com/user-attachments/assets/7509b544-0a29-4979-93be-702f736bdc90)
 
-### Service calls
+Every work mode takes an optional **Inverter**. Leave it alone and the only hybrid inverter on the site is used, which is what the automations most people have written already do. Set it where a site has two, or the action may reach the wrong machine.
 
-The service calls are unchanged and remain supported, so existing automations and scripts continue to work untouched. Choose `Add action`, then `Other actions`, then `Perform an action`, and select the appropriate service from the list below. You can select the device to perform the action on, or leave it blank and the first Hybrid Inverter on the site will be used.
+The parameters are listed with each work mode below. The name shown is the label in the user interface; the key is what you write if you are editing the action in YAML.
 
-Each service may take parameters as specified below. The name shown is the label in the user interface; the key is what you write if you are editing the action in YAML.
+Note that the work modes are not listed under the inverter itself in `By target`. Home Assistant no longer permits an action to name a device as its target, so nothing associates them with a particular machine until you choose one in the Inverter field.
+
+### Device actions
+
+On Home Assistant versions whose automation editor offers them, the same work modes also appear as device actions once you have picked an inverter. They delegate to the actions above, so the two are interchangeable and anything written with either keeps working. Newer versions do not ask integrations for device actions in the automation editor, so you may not see them.
 
 ## Work Modes
 
@@ -77,7 +79,7 @@ The work mode currently running on each inverter is shown in the `sensor.{device
 
 This is the default work mode, with excess solar diverted to the battery by default, and the battery supplying local loads if needed.
 
-Device action "Self Consumption", or the "_set_work_mode_self_consumption_" service call.
+The "_set_work_mode_self_consumption_" action, or the "Self Consumption" device action where your version of Home Assistant offers them.
 
 Name | Key | Required | Description
 --- | --- | --- | -----------
@@ -87,7 +89,7 @@ Percentage To Battery | percent_to_battery | No | Sets the percentage of any exc
 
 Charges the battery at a set power rate with energy from the grid. Once the target state of charge has been reached, the system will remain in a state where grid power is consumed to supply local loads until the work mode is changed.
 
-Device action "Grid Charge", or the "_set_work_mode_force_charge_" service call.
+The "_set_work_mode_force_charge_" action, or the "Grid Charge" device action where your version of Home Assistant offers them.
 
 Name | Key | Required | Description
 --- | --- | --- | -----------
@@ -98,7 +100,7 @@ Target SoC % | target_percent | Yes | The target State Of Charge to charge the b
 
 Force discharges the battery and uses excess solar to export to the grid at the specified rate until the target State of Charge is reached, thereafter the system will export all excess solar until the work mode is changed.
 
-Device action "Grid Export", or the "_set_work_mode_grid_export_" service call.
+The "_set_work_mode_grid_export_" action, or the "Grid Export" device action where your version of Home Assistant offers them.
 
 Name | Key | Required | Description
 --- | --- | --- | -----------
@@ -111,7 +113,7 @@ Overdrive | overdrive | No | Allow exceeding the usual export ceiling where the 
 
 Exports all excess solar to the grid instead of charging the battery. If the amount of excess solar exceeds the export limit of the site then any excess is used to charge the battery.
 
-Device action "Excess PV Export", or the "_set_work_mode_pv_export_" service call, with no parameters.
+The "_set_work_mode_pv_export_" action, which takes no parameters, or the "Excess PV Export" device action where your version of Home Assistant offers them.
 
 ### Target State Of Charge
 
@@ -119,7 +121,7 @@ Manages grid export, battery charging and battery discharging based on a specifi
 
 To avoid target charging and export power reaching infinity or excessive values, the algorithm tops out at 30 minutes remaining. I.e. if the work mode stays in Target SoC mode or reaches within 30 minutes of the target period, the algorithm treats all calculations as if there are 30 minutes remaining to reach the target.
 
-Device action "Target State Of Charge", or the "_set_work_mode_target_soc_" service call.
+The "_set_work_mode_target_soc_" action, or the "Target State Of Charge" device action where your version of Home Assistant offers them.
 
 Name | Key | Required | Description
 --- | --- | --- | -----------
@@ -132,7 +134,7 @@ Max Discharge Power | max_discharge_power | No | The amount of kilowatts max to 
 
 Allows the system to "coast" without using any battery, useful if you would prefer to reserve battery capacity for an upcoming period of high cost import.
 
-Device action "Idle Battery", or the "_set_work_mode_idle_battery_" service call.
+The "_set_work_mode_idle_battery_" action, or the "Idle Battery" device action where your version of Home Assistant offers them.
 
 Name | Key | Required | Description
 --- | --- | --- | -----------
@@ -143,7 +145,7 @@ Allow Discharging | allow_discharging | No | Set to true if you still want to al
 
 Restores the system's own operation. If a schedule was in effect when the mode was changed it resumes, otherwise automatic operation does.
 
-Device action "Reset Work Mode", or the "_set_work_mode_reset_" service call, with no parameters.
+The "_set_work_mode_reset_" action, which takes no parameters, or the "Reset Work Mode" device action where your version of Home Assistant offers them.
 
 
 
