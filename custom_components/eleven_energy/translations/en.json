@@ -226,6 +226,10 @@
             "name": "Self Consumption",
             "description": "Solar covers the house, surplus charges the battery, and once it is full the surplus is exported. The battery makes up any shortfall. This is the normal resting state.",
             "fields": {
+                "device_id": {
+                    "name": "Inverter",
+                    "description": "Which inverter to act on. Leave it empty and the first hybrid inverter on the site is used, which is the wrong machine where a site has two."
+                },
                 "percent_to_battery": {
                     "name": "Percentage To Battery",
                     "description": "How much of the surplus solar to store rather than export, as a percentage. Leave unset to store all of it."
@@ -236,6 +240,10 @@
             "name": "Grid Charge",
             "description": "Charge the battery from the grid at a set power until it reaches a target. Once there, the house is supplied from the grid until the mode is changed.",
             "fields": {
+                "device_id": {
+                    "name": "Inverter",
+                    "description": "Which inverter to act on. Leave it empty and the first hybrid inverter on the site is used, which is the wrong machine where a site has two."
+                },
                 "target_power": {
                     "name": "Target Power",
                     "description": "Battery charge power in kW. A lower rate may be used if the battery is current limited, such as at a low state of charge."
@@ -250,6 +258,10 @@
             "name": "Grid Export",
             "description": "Discharge the battery to the grid at a set power until it reaches a target. After that the house is still supplied from the battery, but surplus solar is exported rather than stored.",
             "fields": {
+                "device_id": {
+                    "name": "Inverter",
+                    "description": "Which inverter to act on. Leave it empty and the first hybrid inverter on the site is used, which is the wrong machine where a site has two."
+                },
                 "target_power": {
                     "name": "Target Power",
                     "description": "Battery discharge power in kW. This is battery power, not power at the meter: with 1 kW of house load, 5 kW here puts about 4 kW on the grid."
@@ -271,12 +283,21 @@
         "set_work_mode_pv_export": {
             "name": "Excess PV Export",
             "description": "Like self consumption, but surplus solar is exported before it is stored. If more solar is available than can be exported, the remainder goes to the battery.",
-            "fields": {}
+            "fields": {
+                "device_id": {
+                    "name": "Inverter",
+                    "description": "Which inverter to act on. Leave it empty and the first hybrid inverter on the site is used, which is the wrong machine where a site has two."
+                }
+            }
         },
         "set_work_mode_idle_battery": {
             "name": "Idle Battery",
             "description": "Hold the battery where it is. Charging and discharging can be allowed separately.",
             "fields": {
+                "device_id": {
+                    "name": "Inverter",
+                    "description": "Which inverter to act on. Leave it empty and the first hybrid inverter on the site is used, which is the wrong machine where a site has two."
+                },
                 "allow_charging": {
                     "name": "Allow Charging",
                     "description": "Permit charging the battery from surplus solar."
@@ -291,6 +312,10 @@
             "name": "Target State Of Charge",
             "description": "Reach a target state of charge within a deadline, working out the rate from the house load as it goes. Once the target is reached the system runs in PV export priority until the mode is changed.",
             "fields": {
+                "device_id": {
+                    "name": "Inverter",
+                    "description": "Which inverter to act on. Leave it empty and the first hybrid inverter on the site is used, which is the wrong machine where a site has two."
+                },
                 "target_soc": {
                     "name": "Target SoC %",
                     "description": "The state of charge to aim for."
@@ -312,7 +337,12 @@
         "set_work_mode_reset": {
             "name": "Reset Work Mode",
             "description": "Restore the system's own operation. If a schedule was in effect when the mode was changed it resumes, otherwise automatic operation does. Send this when your automation has finished - until you do, the system's own optimisation stays switched off.",
-            "fields": {}
+            "fields": {
+                "device_id": {
+                    "name": "Inverter",
+                    "description": "Which inverter to act on. Leave it empty and the first hybrid inverter on the site is used, which is the wrong machine where a site has two."
+                }
+            }
         }
     },
     "device_automation": {

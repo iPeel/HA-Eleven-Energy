@@ -2,17 +2,24 @@
 # where Home Assistant has read them from since 2024.8 - keeping them here as well would be two
 # copies to drift apart.
 #
-# Targets are devices, not entities. These actions change what an inverter is doing, the code
-# resolves a device to its cloud id, and an entity target left it with nothing to resolve - so it
-# fell back to the first inverter it could find, which is the wrong machine on a site with two.
-# An entity target is still accepted and resolved to the device it belongs to, so automations
-# written against the old definition keep working.
+# These actions change what an inverter is doing, so what they want is a device. A device filter
+# is not allowed inside target - Home Assistant rejects it and directs you to a device selector -
+# so the inverter is a field of its own, which is where resolve_device already looks for it.
+#
+# The entity target stays. It resolves to the device the entity belongs to, so automations written
+# against the older definition keep working, and with neither given the code falls back to the
+# first inverter on the site - which is the wrong machine where a site has two, hence the field.
 
 set_work_mode_self_consumption:
   target:
     entity:
       integration: eleven_energy
   fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: eleven_energy
     percent_to_battery:
       required: false
       example: 100
@@ -29,6 +36,11 @@ set_work_mode_force_charge:
     entity:
       integration: eleven_energy
   fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: eleven_energy
     target_power:
       required: true
       example: 3.5
@@ -55,6 +67,11 @@ set_work_mode_grid_export:
     entity:
       integration: eleven_energy
   fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: eleven_energy
     target_power:
       required: true
       example: 3.5
@@ -88,12 +105,24 @@ set_work_mode_pv_export:
   target:
     entity:
       integration: eleven_energy
+  fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: eleven_energy
+
 
 set_work_mode_idle_battery:
   target:
     entity:
       integration: eleven_energy
   fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: eleven_energy
     allow_charging:
       required: false
       selector:
@@ -108,6 +137,11 @@ set_work_mode_target_soc:
     entity:
       integration: eleven_energy
   fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: eleven_energy
     target_soc:
       required: true
       example: 50
@@ -151,3 +185,10 @@ set_work_mode_reset:
   target:
     entity:
       integration: eleven_energy
+  fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: eleven_energy
+
