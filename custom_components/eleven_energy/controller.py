@@ -252,8 +252,12 @@ class Controller:
                 _LOGGER.debug("Polling Eleven Energy")
                 try:
                     await self.poll_devices()
-                except:  # noqa: E722
-                    _LOGGER.warning("Unable to poll Eleven API")
+                except Exception:  # noqa: BLE001
+                    # Exception, not everything: cancellation is a BaseException, and swallowing
+                    # it left this loop sleeping through an unload and polling on beside the
+                    # poller its reload started. Why it failed is logged, because a poll that
+                    # quietly stops working is the thing nobody notices.
+                    _LOGGER.warning("Unable to poll Eleven API", exc_info=True)
                 await asyncio.sleep(
                     POLL_INTERVAL_SECONDS
                 )  # first because we polled it in await after init.

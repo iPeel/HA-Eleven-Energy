@@ -6,7 +6,7 @@ from collections.abc import Mapping
 import logging
 from typing import Any
 
-from aiohttp import ClientSession
+from aiohttp import ClientError, ClientTimeout
 import voluptuous as vol
 
 from homeassistant.config_entries import SOURCE_REAUTH, SOURCE_RECONFIGURE
@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_entry_oauth2_flow
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import BASE_URL, DOMAIN
 from .oauth import async_register_implementation
@@ -26,30 +27,39 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
-class TokenChecker:
-    """Placeholder class to make tests pass.
+async def check_token(hass: HomeAssistant, token: str) -> None:
+    """Ask the API whether it will accept this key, and say why when it will not.
 
-    TODO Remove this placeholder class and replace with things from your PyPI package.
+    A refused key and an unreachable API are different problems - one is the credential, the
+    other is the network - and reporting both as "failed to connect" sent people looking in the
+    wrong place. Anything we did not anticipate is left to propagate: the flow logs it with its
+    traceback and reports "unknown", which is far more use than a bare except swallowing the one
+    piece of evidence there was.
+
+    Home Assistant's shared session rather than one of our own, which is what an integration is
+    expected to use and means nothing is left unclosed behind a failed attempt.
     """
+    session = async_get_clientsession(hass)
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
 
-    def __init__(self, token: str) -> None:
-        """Initialize."""
-        self.headers = {
-            "accept": "application/json",
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        }
+    try:
+        async with session.get(
+            BASE_URL + "site", headers=headers, timeout=ClientTimeout(total=30)
+        ) as resp:
+            if resp.status in (401, 403):
+                raise InvalidAuth
 
-    async def checkToken(self) -> bool:
-        """Test we can access the configured host."""
-        try:
-            async with ClientSession().get(
-                BASE_URL + "site", headers=self.headers
-            ) as resp:
-                _LOGGER.error("Got response %s of %s", resp.url, resp.status)
-                return resp.status == 200
-        except:  # noqa: E722
-            return False
+            if resp.status != 200:
+                _LOGGER.error("Unexpected %s from %s", resp.status, resp.url)
+                raise CannotConnect
+
+    except (ClientError, TimeoutError) as err:
+        _LOGGER.error("Could not reach %s: %s", BASE_URL, err)
+        raise CannotConnect from err
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
@@ -58,10 +68,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
 
-    hub = TokenChecker(data["token"])
-
-    if not await hub.checkToken():
-        raise CannotConnect
+    await check_token(hass, data["token"])
 
     # Return info that you want to store in the config entry.
     return {"title": "Eleven Energy"}
