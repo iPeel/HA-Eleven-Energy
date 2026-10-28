@@ -2,18 +2,18 @@
 # where Home Assistant has read them from since 2024.8 - keeping them here as well would be two
 # copies to drift apart.
 #
-# These actions change what an inverter is doing, so what they want is a device. A device filter
-# is not allowed inside target - Home Assistant rejects it and directs you to a device selector -
-# so the inverter is a field of its own, which is where resolve_device already looks for it.
+# These actions change what an inverter is doing, so what they want is a device. Home Assistant
+# forbids a device key in target outright and directs you to a device selector, so the inverter
+# is a field - which is where resolve_device already looks for it, ahead of any entity.
 #
-# The entity target stays. It resolves to the device the entity belongs to, so automations written
-# against the older definition keep working, and with neither given the code falls back to the
-# first inverter on the site - which is the wrong machine where a site has two, hence the field.
+# No target is declared, because declaring one makes it required: every automation written without
+# one - which is most of them, since the fallback has always picked the only inverter on the site -
+# was shown as an error in the editor for a target it had never needed.
+#
+# device_id and entity_id are still accepted in the call, so automations written against any
+# earlier definition keep resolving to the same machine.
 
 set_work_mode_self_consumption:
-  target:
-    entity:
-      integration: eleven_energy
   fields:
     device_id:
       required: false
@@ -32,9 +32,6 @@ set_work_mode_self_consumption:
           mode: slider
 
 set_work_mode_force_charge:
-  target:
-    entity:
-      integration: eleven_energy
   fields:
     device_id:
       required: false
@@ -63,9 +60,6 @@ set_work_mode_force_charge:
           mode: slider
 
 set_work_mode_grid_export:
-  target:
-    entity:
-      integration: eleven_energy
   fields:
     device_id:
       required: false
@@ -102,9 +96,6 @@ set_work_mode_grid_export:
         boolean:
 
 set_work_mode_pv_export:
-  target:
-    entity:
-      integration: eleven_energy
   fields:
     device_id:
       required: false
@@ -114,9 +105,6 @@ set_work_mode_pv_export:
 
 
 set_work_mode_idle_battery:
-  target:
-    entity:
-      integration: eleven_energy
   fields:
     device_id:
       required: false
@@ -133,9 +121,6 @@ set_work_mode_idle_battery:
         boolean:
 
 set_work_mode_target_soc:
-  target:
-    entity:
-      integration: eleven_energy
   fields:
     device_id:
       required: false
@@ -182,9 +167,6 @@ set_work_mode_target_soc:
           mode: box
 
 set_work_mode_reset:
-  target:
-    entity:
-      integration: eleven_energy
   fields:
     device_id:
       required: false
