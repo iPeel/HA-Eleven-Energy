@@ -10,8 +10,6 @@
 
 set_work_mode_self_consumption:
   target:
-    device:
-      integration: eleven_energy
     entity:
       integration: eleven_energy
   fields:
